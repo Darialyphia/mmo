@@ -1,9 +1,4 @@
-import {
-  clamp,
-  type AsyncReturnType,
-  type MapLayout,
-  type Point
-} from '@mmo/shared';
+import type { AsyncReturnType, MapLayout, Point } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
 import { createStage } from './createStage';
 import { createEntity, playerSpritesById } from './createEntity';
@@ -12,11 +7,6 @@ import { createCamera } from './createCamera';
 // import {  PlayerControls } from './createControls';
 // import { createMouseTracker } from './createMouseTracker';
 import { CELL_SIZE } from './constants';
-
-if (import.meta.env.DEV) {
-  // @ts-ignore enables PIXI devtools
-  window.PIXI = PIXI;
-}
 
 export type User = {
   position: Point;
@@ -62,10 +52,18 @@ export const createGameEngine = async ({
     backgroundAlpha: 0,
     resizeTo: container
   });
+  if (import.meta.env.DEV) {
+    // @ts-ignore enables PIXI devtools
+    window.PIXI = PIXI;
+    // @ts-ignore enables PIXI devtools
+    window.__PIXI_APP__ = app;
+  }
   PIXI.Container.defaultSortableChildren = true;
   PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
 
-  const camera = createCamera();
+  const camera = createCamera(app);
+
+  app.stage.addChild(camera.container);
   const canvas = app.view as unknown as HTMLCanvasElement;
   // const mouseTracker = createMouseTracker(canvas);
   // const controls = new PlayerControls({
@@ -74,9 +72,8 @@ export const createGameEngine = async ({
   //   camera
   // });
 
-  const gameContainer = new PIXI.Container();
   const mapContainer = await createStage(gameWorld);
-  gameContainer.addChild(mapContainer);
+  camera.container.addChild(mapContainer);
 
   let state = createGameState();
   let prevState = createGameState();
@@ -86,7 +83,7 @@ export const createGameEngine = async ({
     state.players.forEach(async player => {
       const sprite =
         playerSpritesById[player.id] ??
-        (await createEntity(gameContainer, player));
+        (await createEntity(camera.container, player));
 
       const oldPlayer = prevState.playersById[player.id];
 
@@ -107,27 +104,13 @@ export const createGameEngine = async ({
   };
 
   const centerCameraOnPlayer = () => {
-    const sprite = state.players[0];
+    const [player] = state.players;
+    if (!player) return;
+
+    const sprite = playerSpritesById[player.id];
     if (!sprite) return;
 
-    camera.update({
-      x: clamp(
-        sprite.position.x * CELL_SIZE,
-        app.screen.width / 2 / camera.view.scale - CELL_SIZE / 2,
-
-        app.stage.width -
-          app.screen.width / 2 / camera.view.scale -
-          CELL_SIZE / 2
-      ),
-      y: clamp(
-        sprite.position.y * CELL_SIZE,
-        app.screen.height / 2 / camera.view.scale - CELL_SIZE / 2,
-        app.stage.height -
-          app.screen.height / 2 / camera.view.scale -
-          CELL_SIZE / 2
-      )
-    });
-    camera.apply(app.screen, gameContainer);
+    camera.update(sprite.position);
   };
 
   app.ticker.add(() => {
@@ -145,11 +128,6 @@ export const createGameEngine = async ({
         playersById: Object.fromEntries(newState.players.map(p => [p.id, p])),
         timestamp: performance.now()
       };
-      const [player] = state.players;
-      if (!player) return;
-
-      const sprite = playerSpritesById[player.id];
-      if (!sprite) return;
     },
     cleanup() {
       window.removeEventListener('resize', app.resize);

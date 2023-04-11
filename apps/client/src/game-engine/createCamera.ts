@@ -1,40 +1,42 @@
-import { lerp, type Point } from '@mmo/shared';
-import type { DisplayObject, Rectangle } from 'pixi.js';
-
-export type CameraView = Point & {
-  scale: number;
-};
+import { clamp, lerp, type Point } from '@mmo/shared';
+import {
+  Application,
+  Container,
+  type DisplayObject,
+  type Rectangle
+} from 'pixi.js';
+import { CELL_SIZE } from './constants';
 
 export type Camera = ReturnType<typeof createCamera>;
 
-export const createCamera = (defaults: Partial<CameraView> = {}) => {
-  const view: CameraView = Object.assign(
-    {
-      x: 0,
-      y: 0,
-      scale: 2
-    },
-    defaults
-  );
+export const createCamera = (app: Application) => {
+  const container = new Container();
+  container.scale.set(2, 2);
+  container.position.set(app.screen.width / 2, app.screen.height / 2);
 
   return {
-    get view() {
-      return { ...view };
-    },
+    container,
 
-    update(newView: Partial<CameraView>) {
-      Object.assign(view, newView);
-    },
+    update({ x, y }: Point) {
+      const newPivot = {
+        x: lerp(0.1, [container.pivot.x, x]),
+        y: lerp(0.1, [container.pivot.y, y])
+      };
 
-    apply(screen: Rectangle, target: DisplayObject) {
-      // we are multiplying the view position by -1 because it is actually the stage that is moving, not the camera
-      // so if want to scroll to the right for example, we need to move the stage to he left
-
-      target.pivot.set(
-        lerp(0.1, [target.position.x, view.x * view.scale + screen.width / 2]),
-        lerp(0.1, [target.position.y, view.y * view.scale + screen.height / 2])
+      container.pivot.set(
+        clamp(
+          newPivot.x,
+          app.screen.width / 2 / container.scale.x - CELL_SIZE / 2,
+          (app.stage.width - app.screen.width / 2) / container.scale.x -
+            CELL_SIZE / 2
+        ),
+        clamp(
+          newPivot.y,
+          app.screen.height / 2 / container.scale.y - CELL_SIZE / 2,
+          (app.stage.height - app.screen.height / 2) / container.scale.y -
+            CELL_SIZE / 2
+        )
       );
-      target.scale.set(view.scale, view.scale);
     }
   };
 };
