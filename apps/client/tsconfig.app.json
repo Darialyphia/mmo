@@ -1,0 +1,31 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.web.json",
+  "include": [
+    "env.d.ts",
+    "auto-imports.d.ts",
+    "components.d.ts",
+    "typed-router.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "src/**/*.json",
+    "test/**/*"
+  ],
+  "exclude": ["src/**/__tests__/*"],
+  "compilerOptions": {
+    "ignoreDeprecations": "5.0",
+    "composite": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "unplugin-icons/types/vue",
+      "unplugin-vue-macros/macros-global",
+      "@intlify/unplugin-vue-i18n/messages",
+      "vitest/globals",
+      "vite-plugin-pwa/client"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}

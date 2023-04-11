@@ -1,0 +1,47 @@
+{
+  "common": {
+    "labels": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "inputs": {
+      "date": {
+        "placeholder": "Select a date"
+      }
+    },
+    "validate": "Validate",
+    "cancel": "Cencel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "and": "and",
+    "or": "or",
+    "next": "cnext",
+    "previous": "previous",
+    "true": "true",
+    "false": "false"
+  },
+  "network": {
+    "toasts": {
+      "online": {
+        "title": "Your internet connection has been restored",
+        "text": "You now have access to all our services again."
+      },
+      "offline": {
+        "title": "You internet connexion has been lost",
+        "text": "Some of our services will not work properly."
+      }
+    }
+  },
+  "pwa": {
+    "offlineReady": "The application is ready to work offline",
+    "newContentAvailable": "New content is available, please reload the application to discover it",
+    "reload": "Reload",
+    "close": "Close"
+  },
+  "datePicker": {
+    "time": {
+      "from": "from",
+      "to": "to"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "cssvar.files": [
+    "./node_modules/open-props/open-props.min.css",
+    "./apps/client/src/styles/theme.css"
+  ],
+
+  "cssvar.ignore": [],
+
+  "cssvar.extensions": ["css", "postcss", "jsx", "tsx", "vue", "astro"],
+
+  "typescript.preferences.autoImportFileExcludePatterns": ["vue-router"]
+}

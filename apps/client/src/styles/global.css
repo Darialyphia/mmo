@@ -1,0 +1,53 @@
+@import 'open-props/postcss/normalize';
+@import './theme.css';
+@import './medias.css';
+@import './utils.css';
+
+html {
+  /* font-size: 14px; */
+}
+
+body {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul > li {
+  padding: 0;
+}
+
+a[href] {
+  color: inherit;
+  text-decoration: none;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-1);
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface-1) inset;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+

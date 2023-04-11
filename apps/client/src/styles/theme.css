@@ -1,0 +1,87 @@
+:root {
+  /* Additional values not present in Open props */
+  --radius-pill: 9999px;
+  --font-size-0: 0.9rem;
+  --font-size-00: 0.8rem;
+  --font-size-000: 0.7rem;
+  --font-size-9: 4rem;
+  --font-size-10: 5rem;
+  --font-size-11: 6rem;
+  --font-size-12: 7.5rem;
+  --size-content-4: 80ch;
+
+  /* Colors */
+  /* Open props uses this variable in their normalizer */
+  --brand: var(--primary-light);
+
+  --link: var(--indigo-7);
+  --link-visited: var(--link);
+
+  --text-1: var(--gray-11);
+  --text-2: var(--gray-8);
+  --text-3: var(--gray-7);
+
+  --surface-1: white;
+  --surface-2: var(--gray-0);
+  --surface-3: var(--gray-1);
+  --surface-4: var(--gray-2);
+
+  --primary: var(--lime-9);
+  --primary-hsl: var(--lime-9-hsl);
+  --primary-hover: var(--lime-10);
+  --text-on-primary: var(--gray-0);
+
+  --primary-light: var(--lime-4);
+  --primary-light-hsl: var(--lime-4-hsl);
+
+  --error: var(--red-8);
+  --error-hsl: var(--red-8-hsl);
+  --error-hover: var(--red-9);
+
+  --error-light: var(--red-4);
+  --error-light-hsl: var(--red-3-hsl);
+
+  --disabled: var(--gray-3);
+  --disabled-hsl: var(--gray-3-hsl);
+  --text-disabled: var(--gray-6);
+
+  --border-dimmed: hsl(var(--gray-11-hsl) / 0.15);
+  --border: hsl(var(--gray-11-hsl) / 0.4);
+
+  /* App specific variables */
+  --header-height: var(--size-12);
+}
+
+html.dark {
+  --link: var(--indigo-3);
+
+  --text-1: var(--gray-3);
+  --text-2: var(--gray-5);
+  --text-3: var(--gray-6);
+
+  --surface-1: var(--gray-9);
+  --surface-2: var(--gray-10);
+  --surface-3: var(--gray-11);
+  --surface-4: var(--gray-12);
+
+  --primary-hover: var(--lime-8);
+  --text-on-primary: var(--lime-0);
+
+  --error: var(--red-5);
+  --error-hsl: var(--red-5-hsl);
+  --error-hover: var(--red-6);
+
+  --error-light: var(--red-2);
+  --error-light-hsl: var(--red-2-hsl);
+
+  --disabled: var(--gray-8);
+  --disabled-hsl: var(--gray-8-hsl);
+  --text-disabled: var(--gray-6);
+
+  --border-dimmed: hsl(var(--gray-0-hsl) / 0.15);
+  --border: hsl(var(--gray-0-hsl) / 0.4);
+}
+
+:where(:focus-visible) {
+  outline-width: 2px;
+}

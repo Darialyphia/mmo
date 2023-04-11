@@ -1,0 +1,162 @@
+<script setup lang="ts">
+import type { Nullable } from '@mmo/shared';
+import { Icon } from '@iconify/vue';
+import { omit, pick } from 'lodash-es';
+
+defineOptions({
+  inheritAttrs: false,
+  name: 'UiInputText'
+});
+
+type Props = {
+  modelValue: Nullable<string | number>;
+  name?: string;
+  type?: string;
+  id: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  leftIcon?: string;
+  rightIcon?: string;
+  isError?: boolean;
+};
+
+const props = withDefaults(defineProps<Props>(), {
+  type: 'text',
+  leftIcon: undefined,
+  rightIcon: undefined,
+  name: undefined,
+  size: 'md'
+});
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void;
+}>();
+
+const slots = useSlots();
+
+const attrs = useAttrs();
+const wrapperAttrs = computed(() => pick(attrs, ['class', 'style']));
+const inputAttrs = computed(() => omit(attrs, ['class', 'style']));
+
+const vModel = useVModel(props, 'modelValue', emit);
+</script>
+
+<template>
+  <div
+    class="ui-input-text"
+    :class="[props.size, props.isError && !attrs.disabled && 'error']"
+    v-bind="wrapperAttrs"
+  >
+    <UiCenter v-if="slots.left || props.leftIcon" class="left">
+      <slot name="left">
+        <Icon v-if="props.leftIcon" :icon="props.leftIcon" class="icon" />
+      </slot>
+    </UiCenter>
+
+    <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -->
+    <input
+      :id="props.id"
+      v-model="vModel"
+      :name="props.name"
+      :type="props.type"
+      v-bind="inputAttrs"
+    />
+
+    <UiCenter v-if="slots.right || props.rightIcon" class="right">
+      <slot name="right">
+        <Icon v-if="props.rightIcon" :icon="props.rightIcon" class="icon" />
+      </slot>
+    </UiCenter>
+  </div>
+</template>
+
+<style scoped lang="postcss">
+.ui-input-text {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--size-1);
+  background-color: var(--surface-1);
+  border: solid 1px var(--border-dimmed);
+  border-radius: var(--radius-1);
+
+  &:not(:has(.left)):not(:has(.right)) {
+    grid-template-columns: 1fr;
+  }
+  &:has(.left):not(:has(.right)) {
+    grid-template-columns: auto 1fr;
+  }
+  &:has(.right):not(:has(.left)) {
+    grid-template-columns: 1fr auto;
+  }
+
+  &:has(input:focus-visible) {
+    transition: outline-offset 145ms var(--ease-2);
+    outline-color: var(--brand, var(--link));
+    outline-style: solid;
+    outline-offset: 5px;
+  }
+
+  &.error {
+    border-color: var(--error);
+  }
+
+  &.sm {
+    font-size: var(--font-size-0);
+  }
+  &.md {
+    font-size: var(--font-size-1);
+  }
+  &.lg {
+    font-size: var(--font-size-2);
+  }
+  &.xl {
+    font-size: var(--font-size-3);
+  }
+
+  & .left {
+    margin-inline-start: var(--size-2);
+  }
+
+  & .right {
+    margin-inline-end: var(--size-2);
+  }
+
+  & .icon {
+    font-size: var(--font-size-3);
+    color: hsl(var(--primary-hsl) / 0.5);
+  }
+
+  & input {
+    background-color: inherit;
+    color: inherit;
+    padding-inline: var(--size-3);
+    padding-block: var(--size-2);
+    min-width: 0;
+    cursor: text;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: var(--text-3);
+    }
+  }
+
+  &:has(input:disabled) {
+    background: var(--disabled);
+    color: var(--text-disabled);
+  }
+
+  &:has(.left) input {
+    padding-inline-start: 0;
+  }
+
+  &:has(.right) input {
+    padding-inline-end: 0;
+  }
+}
+</style>
