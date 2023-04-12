@@ -2481,6 +2481,11 @@
     read-package-json-fast "^3.0.0"
     which "^3.0.0"
 
+"@pixi-essentials/gradients@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@pixi-essentials/gradients/-/gradients-1.0.1.tgz#30bf1d911ff3ab89e61491295308823b881b90d0"
+  integrity sha512-hL383RWm2QznL29y1tI6EEwb7oYl8PKDIkof0b4molh9drZWGo/qWDjXJ9NU4PfMBoLb9BNWdwURZYWl4HS2KQ==
+
 "@pixi/accessibility@7.2.4":
   version "7.2.4"
   resolved "https://registry.yarnpkg.com/@pixi/accessibility/-/accessibility-7.2.4.tgz#3198d0059c230c668b1179457346a3b5dcba6e64"

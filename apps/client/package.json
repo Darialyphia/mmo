@@ -18,6 +18,7 @@
     "@iconify/vue": "^4.1.0",
     "@intlify/unplugin-vue-i18n": "^0.9.2",
     "@mmo/shared": "*",
+    "@pixi-essentials/gradients": "^1.0.1",
     "@tanstack/vue-query": "^4.22.0",
     "@testing-library/vue": "^7.0.0",
     "@trpc/client": "^10.8.2",

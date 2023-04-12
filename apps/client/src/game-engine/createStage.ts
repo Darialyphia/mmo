@@ -39,6 +39,7 @@ export const createStage = async ({
   gameWorld
 }: CreateStageOptions) => {
   const mapContainer = new PIXI.Container();
+  // We need a backdrop the size of the whole map for the map container dimension to be set
   const backdrop = new PIXI.Graphics();
   backdrop.beginFill(0x000000);
   backdrop.drawRect(
@@ -48,7 +49,9 @@ export const createStage = async ({
     gameWorld.map.height * CELL_SIZE
   );
   backdrop.endFill();
+
   mapContainer.addChild(backdrop);
+
   let currentChunkContainer = new PIXI.Container();
   mapContainer.addChild(currentChunkContainer);
 

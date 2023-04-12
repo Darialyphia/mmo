@@ -1,10 +1,5 @@
 import { clamp, lerp, type Point } from '@mmo/shared';
-import {
-  Application,
-  Container,
-  type DisplayObject,
-  type Rectangle
-} from 'pixi.js';
+import { Application, Container } from 'pixi.js';
 import { CELL_SIZE } from './constants';
 
 export type Camera = ReturnType<typeof createCamera>;
@@ -19,8 +14,8 @@ export const createCamera = (app: Application) => {
 
     update({ x, y }: Point) {
       const newPivot = {
-        x: lerp(0.1, [container.pivot.x, x]),
-        y: lerp(0.1, [container.pivot.y, y])
+        x: lerp(0.5, [container.pivot.x, x]),
+        y: lerp(0.5, [container.pivot.y, y])
       };
 
       container.pivot.set(
