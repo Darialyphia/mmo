@@ -6,14 +6,11 @@ defineOptions({
 
 <template>
   <div class="default-layout">
-    <header>Header</header>
-
     <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions, vuejs-accessibility/mouse-events-have-key-events -->
 
     <main>
       <slot />
     </main>
-    <footer>Footer</footer>
   </div>
 </template>
 
@@ -23,6 +20,6 @@ defineOptions({
 .default-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  /* grid-template-rows: auto 1fr auto; */
 }
 </style>

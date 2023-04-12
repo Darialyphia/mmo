@@ -11,8 +11,11 @@ const addEntity = async (camera: PIXI.Container, player: User) => {
   playerSpritesById[player.id] = container;
 
   const g = new PIXI.Graphics();
-  g.lineStyle(0);
-  g.beginFill(0xde3249, 1);
+  g.lineStyle(1);
+  g.beginFill(
+    new PIXI.Color({ h: player.color, s: 100, l: 65, a: 0.5 }).toArray(),
+    1
+  );
   g.drawCircle(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE * 0.33);
   g.endFill();
   // we offser the position by half a cell because cells are anchored on the center which naturally offsets them as well

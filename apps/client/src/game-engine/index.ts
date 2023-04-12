@@ -15,8 +15,9 @@ export type User = {
 };
 
 export type GameEngine = AsyncReturnType<typeof createGameEngine>;
-export type CreateGameCanvasOptions = {
+export type CreateGameEngineOptions = {
   container: HTMLElement;
+  sessionId: string;
   gameWorld: { map: MapLayout };
 };
 
@@ -40,8 +41,9 @@ const createGameState = (): GameState => {
 
 export const createGameEngine = async ({
   container,
+  sessionId,
   gameWorld
-}: CreateGameCanvasOptions) => {
+}: CreateGameEngineOptions) => {
   const { width, height } = container.getBoundingClientRect();
 
   const app = new PIXI.Application({
@@ -72,7 +74,7 @@ export const createGameEngine = async ({
   //   camera
   // });
 
-  const mapContainer = await createStage(gameWorld);
+  const mapContainer = await createStage({ app, camera, gameWorld });
   camera.container.addChild(mapContainer);
 
   let state = createGameState();
@@ -104,7 +106,7 @@ export const createGameEngine = async ({
   };
 
   const centerCameraOnPlayer = () => {
-    const [player] = state.players;
+    const player = state.playersById[sessionId];
     if (!player) return;
 
     const sprite = playerSpritesById[player.id];

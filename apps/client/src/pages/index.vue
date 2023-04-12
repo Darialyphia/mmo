@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { createGameEngine, type GameEngine } from '@/game-engine';
-import type { MapLayout } from '@mmo/shared';
 
 definePage({
   name: 'Home'
@@ -17,6 +16,7 @@ socket.on('connect', () => {
     if (!container.value) return;
     engine = await createGameEngine({
       container: container.value,
+      sessionId: socket.id,
       gameWorld: { map: payload }
     });
     const { canvas } = engine;

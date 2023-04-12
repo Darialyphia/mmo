@@ -1,7 +1,6 @@
 import { randomInt } from 'crypto';
 import { createMap } from './mapgen';
 import { EventEmitter } from 'events';
-import { nanoid } from 'nanoid';
 import { Point, clamp } from '@mmo/shared';
 
 export type Player = {
@@ -32,10 +31,10 @@ export const createGame = () => {
   const map = createMap();
   const players: Player[] = [];
 
-  const createPlayer = () => {
+  const createPlayer = (id: string) => {
     const user = {
       position: { x: randomInt(map.width), y: randomInt(map.height) },
-      id: nanoid(),
+      id,
       color: randomInt(360)
     };
 
@@ -54,16 +53,16 @@ export const createGame = () => {
   ) => {
     switch (direction) {
       case 'up':
-        player.position.y = clamp(player.position.y - 1, 0, map.height);
+        player.position.y = clamp(player.position.y - 1, 0, map.height - 1);
         break;
       case 'down':
-        player.position.y = clamp(player.position.y + 1, 0, map.height);
+        player.position.y = clamp(player.position.y + 1, 0, map.height - 1);
         break;
       case 'left':
-        player.position.x = clamp(player.position.x - 1, 0, map.width);
+        player.position.x = clamp(player.position.x - 1, 0, map.width - 1);
         break;
       case 'right':
-        player.position.x = clamp(player.position.x + 1, 0, map.width);
+        player.position.x = clamp(player.position.x + 1, 0, map.width - 1);
         break;
     }
   };

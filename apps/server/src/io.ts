@@ -4,6 +4,7 @@ import { handleCORS } from './middlewares/cors';
 import { Point, clamp, randomInt } from '@mmo/shared';
 import { createGame } from './game';
 import { nanoid } from 'nanoid';
+import { logger } from './utils/logger';
 
 type User = {
   position: Point;
@@ -54,12 +55,14 @@ export const createIO = (server: http.Server) => {
   });
 
   io.on('connection', socket => {
-    const user = game.createPlayer();
+    logger.debug(`socket connected :${socket.id}`);
+    const user = game.createPlayer(socket.id);
     usersBySocket.set(socket, user);
 
     socket.emit('map', game.map);
 
     socket.on('disconnect', () => {
+      logger.debug(`socket disconnected :${socket.id}`);
       const player = usersBySocket.get(socket);
       if (player) {
         game.removePlayer(player);
