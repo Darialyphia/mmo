@@ -28,16 +28,16 @@ const TERRAINS_COUNT = 4;
 
 const variantsCache = new Map<string, number>();
 
-type CreateStageOptions = {
+type CreateMapOptions = {
   app: PIXI.Application;
   camera: Camera;
   gameWorld: { map: MapLayout };
 };
-export const createStage = async ({
+export const createMap = async ({
   app,
   camera,
   gameWorld
-}: CreateStageOptions) => {
+}: CreateMapOptions) => {
   const mapContainer = new PIXI.Container();
   // We need a backdrop the size of the whole map for the map container dimension to be set
   const backdrop = new PIXI.Graphics();
@@ -58,13 +58,17 @@ export const createStage = async ({
   // const CHUNK_BUFFER = Math.ceil(
   //   Math.max(app.screen.width, app.screen.height) / CELL_SIZE
   // );
-  const CHUNK_BUFFER = 15;
+  const CHUNK_BUFFER_X =
+    app.screen.width / 2 / CELL_SIZE / camera.container.scale.x;
+  const CHUNK_BUFFER_Y =
+    app.screen.height / 2 / CELL_SIZE / camera.container.scale.x;
+
   const chunkSize = {
     w: Math.ceil(
-      app.screen.width / CELL_SIZE / camera.container.scale.x + CHUNK_BUFFER
+      (app.screen.width / CELL_SIZE / camera.container.scale.x) * 1.5
     ),
     h: Math.ceil(
-      app.screen.height / CELL_SIZE / camera.container.scale.y + CHUNK_BUFFER
+      (app.screen.height / CELL_SIZE / camera.container.scale.y) * 1.5
     )
   };
 
@@ -99,30 +103,37 @@ export const createStage = async ({
       y: Math.floor(center.y / CELL_SIZE)
     };
 
-    const isCloseToChunkEdge =
-      cameraPosition.x - currentChunk.x < CHUNK_BUFFER ||
-      currentChunk.x + currentChunk.w - cameraPosition.x < CHUNK_BUFFER ||
-      cameraPosition.y - currentChunk.y < CHUNK_BUFFER ||
-      currentChunk.y + currentChunk.h - cameraPosition.y < CHUNK_BUFFER;
+    const left = cameraPosition.x - currentChunk.x < CHUNK_BUFFER_X;
+    const right =
+      currentChunk.x + currentChunk.w - cameraPosition.x < CHUNK_BUFFER_X;
+    const top = cameraPosition.y - currentChunk.y < CHUNK_BUFFER_Y;
+    const bottom =
+      currentChunk.y + currentChunk.h - cameraPosition.y < CHUNK_BUFFER_Y;
+
+    const isCloseToChunkEdge = left || right || top || bottom;
 
     if (isCloseToChunkEdge) {
       drawChunk(cameraPosition);
     }
   });
 
-  const drawChunk = debounce((center: Point) => {
-    Object.assign(currentChunk, {
+  const drawChunk = (center: Point) => {
+    const newChunk = {
       x: clamp(center.x - Math.floor(chunkSize.w / 2), 0, Infinity),
       y: clamp(center.y - Math.floor(chunkSize.h / 2), 0, Infinity)
-    });
+    };
+    if (currentChunk.x === newChunk.x && currentChunk.y === newChunk.y) {
+      return;
+    }
+    Object.assign(currentChunk, newChunk);
 
     currentChunkContainer.destroy();
     currentChunkContainer = new PIXI.Container();
     mapContainer.addChild(currentChunkContainer);
 
     gameWorld.map.cells.forEach((cell, cellIndex) => {
-      const x = cellIndex % mapOptions.dimensions.w;
-      const y = cellIndex / mapOptions.dimensions.h;
+      const x = Math.floor(cellIndex % mapOptions.dimensions.w);
+      const y = Math.floor(cellIndex / mapOptions.dimensions.h);
       if (
         x < currentChunk.x ||
         x > currentChunk.x + currentChunk.w ||
@@ -134,9 +145,7 @@ export const createStage = async ({
 
       const tileContainer = new PIXI.Container();
 
-      const variant =
-        variantsCache.get([x, y].toString()) ??
-        randomInt(VARIANTS_BY_EDGES[cell.edge] - 1);
+      const variant = randomInt(VARIANTS_BY_EDGES[cell.edge] - 1);
       variantsCache.set([x, y].toString(), variant);
 
       const tileIndex =
@@ -146,7 +155,6 @@ export const createStage = async ({
       const sprite = new PIXI.Sprite(
         sheet.textures[`${tilesetOptions.id}-${tileIndex}`]
       );
-
       tileContainer.position.set(
         mapOptions.tileSize * x,
         mapOptions.tileSize * y
@@ -160,7 +168,12 @@ export const createStage = async ({
 
       tileContainer.addChild(sprite);
     });
-  }, 16);
+  };
 
-  return mapContainer;
+  return {
+    container: mapContainer,
+    cleanup() {
+      // window.removeEventListener('resize', updateChunkSize);
+    }
+  };
 };

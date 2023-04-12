@@ -1,9 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import type http from 'http';
 import { handleCORS } from './middlewares/cors';
-import { Point, clamp, randomInt } from '@mmo/shared';
-import { createGame } from './game';
-import { nanoid } from 'nanoid';
+import { Point } from '@mmo/shared';
+import { Directions, createGame } from './game';
 import { logger } from './utils/logger';
 
 type User = {
@@ -56,25 +55,20 @@ export const createIO = (server: http.Server) => {
 
   io.on('connection', socket => {
     logger.debug(`socket connected :${socket.id}`);
-    const user = game.createPlayer(socket.id);
-    usersBySocket.set(socket, user);
+    game.createPlayer(socket.id);
 
     socket.emit('map', game.map);
 
     socket.on('disconnect', () => {
       logger.debug(`socket disconnected :${socket.id}`);
-      const player = usersBySocket.get(socket);
-      if (player) {
-        game.removePlayer(player);
-        usersBySocket.delete(socket);
-      }
+      game.removePlayer(socket.id);
     });
 
-    socket.on('move', (direction: 'up' | 'down' | 'left' | 'right') => {
-      const player = usersBySocket.get(socket);
-      if (player) {
-        game.movePlayer(player, direction);
-      }
+    socket.on('move', (directions: Directions) => {
+      game.dispatch({
+        type: 'move',
+        payload: { playerId: socket.id, directions }
+      });
     });
   });
 

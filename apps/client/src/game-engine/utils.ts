@@ -3,12 +3,21 @@ import {
   type Size,
   type Rectangle,
   lerp,
-  mulVector
+  mulVector,
+  clamp
 } from '@mmo/shared';
 import { CELL_SIZE } from './constants';
 import * as PIXI from 'pixi.js';
 import type { FrameObject, ISpritesheetData, Spritesheet } from 'pixi.js';
 
+export const enablePIXIDevtools = (app: PIXI.Application) => {
+  if (import.meta.env.DEV) {
+    // @ts-ignore enables PIXI devtools
+    window.PIXI = PIXI;
+    // @ts-ignore enables PIXI devtools
+    window.__PIXI_APP__ = app;
+  }
+};
 export const coordsToPixels = (point: Point) => mulVector(point, CELL_SIZE);
 export const dimensionsToPixels = ({ w, h }: Size) => {
   const mapped = mulVector({ x: w, y: h }, CELL_SIZE);

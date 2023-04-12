@@ -17,10 +17,11 @@ socket.on('connect', () => {
     engine = await createGameEngine({
       container: container.value,
       sessionId: socket.id,
-      gameWorld: { map: payload }
+      gameWorld: { map: payload },
+      socket
     });
     const { canvas } = engine;
-    container.value.appendChild(canvas);
+    container.value.appendChild(canvas as any);
     document.body.style.overflow = 'hidden';
     document.body.style.height = '100vh';
   });
@@ -34,25 +35,6 @@ onUnmounted(() => {
   document.body.style.overflow = '';
   document.body.style.height = '';
 });
-
-useEventListener('keydown', e => {
-  switch (e.code) {
-    case 'KeyW':
-      socket.emit('move', 'up');
-      return;
-    case 'KeyS':
-      socket.emit('move', 'down');
-      return;
-    case 'KeyA':
-      socket.emit('move', 'left');
-      return;
-    case 'KeyD':
-      socket.emit('move', 'right');
-      return;
-    default:
-      return;
-  }
-});
 </script>
 
 <template><div ref="container" class="container" /></template>
@@ -60,5 +42,6 @@ useEventListener('keydown', e => {
 <style scoped>
 .container {
   height: 100%;
+  max-width: 100vw;
 }
 </style>

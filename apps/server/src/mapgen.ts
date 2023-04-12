@@ -23,8 +23,8 @@ type CellNeighbors = {
   right: Nullable<Terrain>;
 };
 
-const WIDTH = 800;
-const HEIGHT = 800;
+const WIDTH = 600;
+const HEIGHT = 600;
 // const SEED = 12345;
 
 const TERRAINS = {

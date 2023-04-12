@@ -1,12 +1,12 @@
 import * as PIXI from 'pixi.js';
+import type { Player } from '@mmo/shared';
 import { CELL_SIZE } from './constants';
-import type { User } from '.';
 
 const playerCreationPromises = new Map<string, Promise<PIXI.Container>>();
 
 export const playerSpritesById: Record<string, PIXI.Container> = {};
 
-const addEntity = async (camera: PIXI.Container, player: User) => {
+const addEntity = async (player: Player) => {
   const container = new PIXI.Container();
   playerSpritesById[player.id] = container;
 
@@ -22,14 +22,13 @@ const addEntity = async (camera: PIXI.Container, player: User) => {
   g.position.set(-(CELL_SIZE / 2), -(CELL_SIZE / 2));
 
   container.addChild(g);
-  camera.addChild(container);
 
   return container;
 };
 
-export const createEntity = async (camera: PIXI.Container, player: User) => {
+export const createEntity = async (player: Player) => {
   if (!playerCreationPromises.has(player.id)) {
-    playerCreationPromises.set(player.id, addEntity(camera, player));
+    playerCreationPromises.set(player.id, addEntity(player));
   }
 
   return playerCreationPromises.get(player.id)!;

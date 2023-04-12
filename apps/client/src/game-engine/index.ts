@@ -1,34 +1,24 @@
-import type { AsyncReturnType, MapLayout, Point } from '@mmo/shared';
+import type { AsyncReturnType, MapLayout, Player } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
-import { createStage } from './createStage';
+import { createMap } from './createMap';
 import { createEntity, playerSpritesById } from './createEntity';
-import { coordsToPixels, interpolateEntity } from './utils';
+import { coordsToPixels, enablePIXIDevtools, interpolateEntity } from './utils';
 import { createCamera } from './createCamera';
-// import {  PlayerControls } from './createControls';
-// import { createMouseTracker } from './createMouseTracker';
-import { CELL_SIZE } from './constants';
+import { Stage } from '@pixi/layers';
+import type { Socket } from 'socket.io-client';
+import { createControls } from './createControls';
 
-export type User = {
-  position: Point;
-  color: number;
-  id: string;
-};
-
-export type GameEngine = AsyncReturnType<typeof createGameEngine>;
-export type CreateGameEngineOptions = {
-  container: HTMLElement;
-  sessionId: string;
-  gameWorld: { map: MapLayout };
-};
+PIXI.Container.defaultSortableChildren = true;
+PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
 
 export type GameState = {
-  players: User[];
-  playersById: Record<string, User>;
+  players: Player[];
+  playersById: Record<string, Player>;
   timestamp: number;
 };
 
 export type UpdateGameStatePayload = {
-  players: User[];
+  players: Player[];
 };
 
 const createGameState = (): GameState => {
@@ -39,10 +29,18 @@ const createGameState = (): GameState => {
   };
 };
 
+export type CreateGameEngineOptions = {
+  container: HTMLElement;
+  sessionId: string;
+  gameWorld: { map: MapLayout };
+  socket: Socket;
+};
+
 export const createGameEngine = async ({
   container,
   sessionId,
-  gameWorld
+  gameWorld,
+  socket
 }: CreateGameEngineOptions) => {
   const { width, height } = container.getBoundingClientRect();
 
@@ -54,28 +52,19 @@ export const createGameEngine = async ({
     backgroundAlpha: 0,
     resizeTo: container
   });
-  if (import.meta.env.DEV) {
-    // @ts-ignore enables PIXI devtools
-    window.PIXI = PIXI;
-    // @ts-ignore enables PIXI devtools
-    window.__PIXI_APP__ = app;
-  }
-  PIXI.Container.defaultSortableChildren = true;
-  PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
+  enablePIXIDevtools(app);
+
+  // create the stage instead of container
+  app.stage = new Stage();
 
   const camera = createCamera(app);
-
+  const map = await createMap({ app, camera, gameWorld });
+  const controls = createControls();
+  controls.on('move', directions => {
+    socket.emit('move', directions);
+  });
+  camera.container.addChild(map.container);
   app.stage.addChild(camera.container);
-  const canvas = app.view as unknown as HTMLCanvasElement;
-  // const mouseTracker = createMouseTracker(canvas);
-  // const controls = new PlayerControls({
-  //   mousePosition: mouseTracker,
-  //   canvas,
-  //   camera
-  // });
-
-  const mapContainer = await createStage({ app, camera, gameWorld });
-  camera.container.addChild(mapContainer);
 
   let state = createGameState();
   let prevState = createGameState();
@@ -83,9 +72,11 @@ export const createGameEngine = async ({
   const interpolateEntities = () => {
     const now = performance.now();
     state.players.forEach(async player => {
-      const sprite =
-        playerSpritesById[player.id] ??
-        (await createEntity(camera.container, player));
+      if (!playerSpritesById[player.id]) {
+        const entity = await createEntity(player);
+        camera.container.addChild(entity);
+      }
+      const sprite = playerSpritesById[player.id];
 
       const oldPlayer = prevState.playersById[player.id];
 
@@ -101,7 +92,7 @@ export const createGameEngine = async ({
         : player.position;
 
       const toPixels = coordsToPixels(position);
-      sprite.position.set(toPixels.x, toPixels.y);
+      sprite!.position.set(toPixels.x, toPixels.y);
     });
   };
 
@@ -119,10 +110,9 @@ export const createGameEngine = async ({
     interpolateEntities();
     centerCameraOnPlayer();
   });
-  window.addEventListener('resize', app.resize);
 
   return {
-    canvas,
+    canvas: app.view,
     updateState(newState: UpdateGameStatePayload) {
       prevState = state;
       state = {
@@ -132,8 +122,11 @@ export const createGameEngine = async ({
       };
     },
     cleanup() {
-      window.removeEventListener('resize', app.resize);
+      camera.cleanup();
+      map.cleanup();
       app.destroy();
     }
   };
 };
+
+export type GameEngine = AsyncReturnType<typeof createGameEngine>;

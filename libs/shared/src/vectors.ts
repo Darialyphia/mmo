@@ -1,5 +1,5 @@
-import type { Point } from './types/utils';
 import { rad2Deg } from './math';
+import type { Point } from './types/geometry';
 
 export type AngleInDegrees = number;
 

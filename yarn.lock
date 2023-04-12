@@ -2590,6 +2590,11 @@
   resolved "https://registry.yarnpkg.com/@pixi/graphics/-/graphics-7.2.4.tgz#8500b604c36184736926393cb0ca9b9de9afef86"
   integrity sha512-3A2EumTjWJgXlDLOyuBrl9b6v1Za/E+/IjOGUIX843HH4NYaf1a2sfDfljx6r3oiDvy+VhuBFmgynRcV5IyA0Q==
 
+"@pixi/layers@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@pixi/layers/-/layers-2.0.1.tgz#1c1aa3c0a9942d381fb598e112bb389172db9a74"
+  integrity sha512-bw1fB0tbQHick9xMWeovuRIgvezHWpBAkEGMwTKd7zIy8Nygg/uupzGddNF3rb+Lk1bq3+H5vejoA8v/mV9AMw==
+
 "@pixi/math@7.2.4":
   version "7.2.4"
   resolved "https://registry.yarnpkg.com/@pixi/math/-/math-7.2.4.tgz#219b64ca44348a1ee900ee074c51ee7e41615059"
@@ -8595,6 +8600,11 @@ minizlib@^2.1.1, minizlib@^2.1.2:
   dependencies:
     minipass "^3.0.0"
     yallist "^4.0.0"
+
+mitt@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/mitt/-/mitt-3.0.0.tgz#69ef9bd5c80ff6f57473e8d89326d01c414be0bd"
+  integrity sha512-7dX2/10ITVyqh4aOSVI9gdape+t9l2/8QxHrFmUXu4EEUpdlxl6RudZUPZoc+zuY2hk1j7XxVroIVIan/pD/SQ==
 
 mkdirp@^1.0.3, mkdirp@^1.0.4:
   version "1.0.4"
