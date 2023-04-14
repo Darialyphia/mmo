@@ -1,7 +1,6 @@
 import { clamp, lerp, type Point } from '@mmo/shared';
 import { Application, Container, Graphics } from 'pixi.js';
 import { CELL_SIZE } from './constants';
-import type { Layer } from '@pixi/layers';
 
 export type Camera = ReturnType<typeof createCamera>;
 
@@ -15,6 +14,7 @@ export const createCamera = (app: Application) => {
   window.addEventListener('resize', setPosition);
 
   const fow = new Graphics();
+  fow.zIndex = 2;
 
   container.addChild(fow);
   return {
@@ -45,8 +45,16 @@ export const createCamera = (app: Application) => {
       );
 
       fow.clear();
-      fow.beginFill(0xff0000);
-      fow.drawCircle(container.pivot.x, container.pivot.y, 200);
+      fow.beginFill(0x000000, 0.5);
+      fow.drawRect(
+        container.pivot.x - app.screen.width / 2 / container.scale.x,
+        container.pivot.y - app.screen.height / 2 / container.scale.y,
+        app.screen.width,
+        app.screen.height
+      );
+      fow.beginHole();
+      fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 5);
+      fow.endHole();
       fow.endFill();
     }
   };

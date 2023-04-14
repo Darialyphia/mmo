@@ -46,8 +46,9 @@ type OtherEvent = {
 
 type GameEvent = MoveEvent | OtherEvent;
 
+const TICK_RATE = 15;
 const PLAYER_SPEED = 1;
-const PLAYER_FOV = 5;
+const PLAYER_FOV = 6;
 
 const createTaskQueue = <TTask extends () => void>() => {
   const tasks: TTask[] = [];
@@ -163,11 +164,15 @@ export const createGame = () => {
     emitter.emit('update', getSnapshot());
   };
 
-  const TICK_RATE = 15;
   setInterval(tick, 1000 / TICK_RATE);
 
   return {
-    map,
+    get meta() {
+      return {
+        width: map.width,
+        height: map.height
+      };
+    },
     createPlayer,
     removePlayer,
     schedule(event: GameEvent) {

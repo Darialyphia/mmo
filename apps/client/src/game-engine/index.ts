@@ -1,4 +1,10 @@
-import type { AsyncReturnType, MapLayout, Player } from '@mmo/shared';
+import type {
+  AsyncReturnType,
+  GameMeta,
+  GameStateSnapshotDto,
+  MapLayout,
+  Player
+} from '@mmo/shared';
 import * as PIXI from 'pixi.js';
 import { createMap } from './createMap';
 import { createEntity, playerSpritesById } from './createEntity';
@@ -17,10 +23,6 @@ export type GameState = {
   timestamp: number;
 };
 
-export type UpdateGameStatePayload = {
-  players: Player[];
-};
-
 const createGameState = (): GameState => {
   return {
     players: [],
@@ -32,14 +34,14 @@ const createGameState = (): GameState => {
 export type CreateGameEngineOptions = {
   container: HTMLElement;
   sessionId: string;
-  gameWorld: { map: MapLayout };
+  meta: GameMeta;
   socket: Socket;
 };
 
 export const createGameEngine = async ({
   container,
   sessionId,
-  gameWorld,
+  meta,
   socket
 }: CreateGameEngineOptions) => {
   const { width, height } = container.getBoundingClientRect();
@@ -58,7 +60,7 @@ export const createGameEngine = async ({
   app.stage = new Stage();
 
   const camera = createCamera(app);
-  const map = await createMap({ app, camera, gameWorld });
+  const map = await createMap({ app, camera, meta });
   const controls = createControls();
   controls.on('move', directions => {
     socket.emit('move', directions);
@@ -113,13 +115,14 @@ export const createGameEngine = async ({
 
   return {
     canvas: app.view,
-    updateState(newState: UpdateGameStatePayload) {
+    updateState(newState: GameStateSnapshotDto) {
       prevState = state;
       state = {
         players: newState.players,
         playersById: Object.fromEntries(newState.players.map(p => [p.id, p])),
         timestamp: performance.now()
       };
+      map.onStateUpdate(newState);
     },
     cleanup() {
       camera.cleanup();

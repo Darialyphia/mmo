@@ -30,8 +30,8 @@ type GameMap = MapLayout & {
   getCellAt(pt: Point): MapCell;
   getFieldOfView(pt: Point, fov: number): MapCell[];
 };
-const WIDTH = 50;
-const HEIGHT = 50;
+const WIDTH = 200;
+const HEIGHT = 200;
 // const SEED = 12345;
 
 const TERRAINS = {
@@ -268,7 +268,7 @@ export const createMap = (): GameMap => {
         for (let cellY = min.y; cellY <= max.y; cellY++) {
           const isVisible = dist({ x, y }, { x: cellX, y: cellY }) <= fov;
           if (isVisible) {
-            cells.push(getCellAt({ x, y }));
+            cells.push(getCellAt({ x: cellX, y: cellY }));
           }
         }
       }

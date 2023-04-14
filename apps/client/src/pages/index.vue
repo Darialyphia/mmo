@@ -12,12 +12,12 @@ socket.on('connect', () => {
   socket.on('update', payload => {
     engine?.updateState(payload);
   });
-  socket.on('map', async payload => {
+  socket.on('game-meta', async payload => {
     if (!container.value) return;
     engine = await createGameEngine({
       container: container.value,
       sessionId: socket.id,
-      gameWorld: { map: payload },
+      meta: payload,
       socket
     });
     const { canvas } = engine;
@@ -43,5 +43,6 @@ onUnmounted(() => {
 .container {
   height: 100%;
   max-width: 100vw;
+  background: #222;
 }
 </style>

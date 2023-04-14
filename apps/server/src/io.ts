@@ -55,7 +55,7 @@ export const createIO = (server: http.Server) => {
         sockets.forEach(socket => {
           socket.emit('update', {
             players: snapshot.players,
-            fieldOFView: snapshot.fieldOfView[socket.id]
+            fieldOfView: snapshot.fieldOfView[socket.id]
           });
         });
       })
@@ -64,7 +64,7 @@ export const createIO = (server: http.Server) => {
 
   io.on('connection', socket => {
     game.createPlayer(socket.id);
-    socket.emit('map', game.map);
+    socket.emit('game-meta', game.meta);
 
     socket.on('disconnect', () => {
       game.removePlayer(socket.id);

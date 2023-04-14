@@ -5,7 +5,10 @@ import {
   type MapLayout,
   type Rectangle,
   type Point,
-  clamp
+  clamp,
+  type GameMeta,
+  type MapCell,
+  type GameStateSnapshotDto
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { spritePaths } from './sprites';
@@ -30,23 +33,19 @@ const variantsCache = new Map<string, number>();
 type CreateMapOptions = {
   app: PIXI.Application;
   camera: Camera;
-  gameWorld: { map: MapLayout };
+  meta: GameMeta;
 };
-export const createMap = async ({
-  app,
-  camera,
-  gameWorld
-}: CreateMapOptions) => {
+const getCellKey = (cell: MapCell) => `${cell.position.x}:${cell.position.y}`;
+
+export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
+  const cells: MapCell[] = [];
+  const cellKeys: Record<string, true> = {};
+
   const mapContainer = new PIXI.Container();
   // We need a backdrop the size of the whole map for the map container dimension to be set
   const backdrop = new PIXI.Graphics();
-  backdrop.beginFill(0x000000);
-  backdrop.drawRect(
-    0,
-    0,
-    gameWorld.map.width * CELL_SIZE,
-    gameWorld.map.height * CELL_SIZE
-  );
+  backdrop.beginFill(0x000000, 0.01);
+  backdrop.drawRect(0, 0, meta.width * CELL_SIZE, meta.height * CELL_SIZE);
   backdrop.endFill();
 
   mapContainer.addChild(backdrop);
@@ -82,7 +81,7 @@ export const createMap = async ({
   };
 
   const mapOptions = {
-    dimensions: { w: gameWorld.map.width, h: gameWorld.map.height },
+    dimensions: { w: meta.width, h: meta.height },
     tileSize: CELL_SIZE
   };
 
@@ -95,12 +94,16 @@ export const createMap = async ({
     h: chunkSize.h
   };
 
-  app.ticker.add(() => {
-    const center = camera.container.pivot.clone();
-    const cameraPosition = {
+  const getCameraPosition = () => {
+    const center = camera.container.pivot;
+    return {
       x: Math.floor(center.x / CELL_SIZE),
       y: Math.floor(center.y / CELL_SIZE)
     };
+  };
+
+  app.ticker.add(() => {
+    const cameraPosition = getCameraPosition();
 
     const left = cameraPosition.x - currentChunk.x < CHUNK_BUFFER_X;
     const right =
@@ -116,21 +119,22 @@ export const createMap = async ({
     }
   });
 
-  const drawChunk = (center: Point) => {
+  const drawChunk = (center: Point, force?: boolean) => {
     const newChunk = {
       x: clamp(center.x - Math.floor(chunkSize.w / 2), 0, Infinity),
       y: clamp(center.y - Math.floor(chunkSize.h / 2), 0, Infinity)
     };
-    if (currentChunk.x === newChunk.x && currentChunk.y === newChunk.y) {
-      return;
-    }
+    const shouldSkip =
+      !force && currentChunk.x === newChunk.x && currentChunk.y === newChunk.y;
+    if (shouldSkip) return;
+
     Object.assign(currentChunk, newChunk);
 
     currentChunkContainer.destroy();
     currentChunkContainer = new PIXI.Container();
     mapContainer.addChild(currentChunkContainer);
 
-    gameWorld.map.cells.forEach((cell, cellIndex) => {
+    cells.forEach(cell => {
       const { x, y } = cell.position;
 
       if (
@@ -144,8 +148,10 @@ export const createMap = async ({
 
       const tileContainer = new PIXI.Container();
 
-      const variant = randomInt(VARIANTS_BY_EDGES[cell.edge] - 1);
-      variantsCache.set([x, y].toString(), variant);
+      const key = getCellKey(cell);
+      const variant =
+        variantsCache.get(key) ?? randomInt(VARIANTS_BY_EDGES[cell.edge] - 1);
+      variantsCache.set(key, variant);
 
       const tileIndex =
         (cell.terrain * MAX_TILES_PER_TERRAIN + cell.edge) * MAX_VARIANTS +
@@ -172,7 +178,21 @@ export const createMap = async ({
   return {
     container: mapContainer,
     cleanup() {
-      // window.removeEventListener('resize', updateChunkSize);
+      console.log('map cleanup');
+    },
+    onStateUpdate(snapshot: GameStateSnapshotDto) {
+      const count = cells.length;
+
+      snapshot.fieldOfView.forEach(cell => {
+        const key = getCellKey(cell);
+        if (cellKeys[key]) return;
+        cellKeys[key] = true;
+        cells.push(cell);
+      });
+
+      if (cells.length !== count) {
+        drawChunk(getCameraPosition(), true);
+      }
     }
   };
 };

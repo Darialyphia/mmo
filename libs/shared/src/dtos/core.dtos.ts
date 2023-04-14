@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { MapCell } from './map.dto';
+import type { Player } from './player.dto';
 
 export const DefaultResponse = z.object({
   success: z.literal(true)
@@ -19,3 +21,13 @@ export const PaginatedResponse = z.object({
   })
 });
 export type PaginatedResponse = z.infer<typeof PaginatedResponse>;
+
+export type GameStateSnapshotDto = {
+  players: Player[];
+  fieldOfView: MapCell[];
+};
+
+export type GameMeta = {
+  height: number;
+  width: number;
+};
