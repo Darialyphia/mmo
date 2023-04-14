@@ -35,7 +35,6 @@ watch(isOnline, (isOnline, prevIsOnline) => {
       </UiCenter>
     </template>
   </Suspense>
-  <ServiceWorkerPrompt />
 </template>
 
 <style scoped lang="postcss">

@@ -3,12 +3,15 @@ import {
   isNever,
   type MapCellAngle,
   type MapLayout,
-  type Matrix,
   type MapCell,
   type Nullable,
   type Values,
   isDefined,
-  MapCellEdge
+  MapCellEdge,
+  Point,
+  clamp,
+  Keys,
+  dist
 } from '@mmo/shared';
 import { makeRectangle } from 'fractal-noise';
 import { makeNoise2D } from 'open-simplex-noise';
@@ -23,8 +26,12 @@ type CellNeighbors = {
   right: Nullable<Terrain>;
 };
 
-const WIDTH = 600;
-const HEIGHT = 600;
+type GameMap = MapLayout & {
+  getCellAt(pt: Point): MapCell;
+  getFieldOfView(pt: Point, fov: number): MapCell[];
+};
+const WIDTH = 50;
+const HEIGHT = 50;
 // const SEED = 12345;
 
 const TERRAINS = {
@@ -62,14 +69,13 @@ const makeTerrainMap = (seed?: number): TerrainMap => {
   const noise2D = makeNoise2D(seed ?? Date.now());
 
   const heightMap = makeRectangle(WIDTH, HEIGHT, (x, y) => noise2D(x, y), {
-    frequency: 0.1,
-    octaves: 6,
-    amplitude: 2
-  }) as unknown as Matrix<number>; // ...the types of the libraryitself are wrong...ahem
+    frequency: 0.08,
+    octaves: 4,
+    amplitude: 2,
+    scale: noiseValueToTerrain
+  });
 
-  let map = heightMap
-    .flat()
-    .map(val => TERRAIN_DISTRIBUTION_MAP[normalizeHeight(val)]);
+  let map = heightMap.flat() as Terrain[];
 
   let needsAdjustmentPass = true;
   let passCount = 0;
@@ -92,7 +98,7 @@ const makeTerrainMap = (seed?: number): TerrainMap => {
           if (isDefined(adjustedTerrain)) return;
 
           const diff = terrain - nTerrain;
-          if (!(Math.abs(diff) > 1)) return;
+          if (Math.abs(diff) <= 1) return;
 
           needsAdjustmentPass = true;
           const adj = diff > 0 ? -1 : 1;
@@ -113,13 +119,15 @@ const makeTerrainMap = (seed?: number): TerrainMap => {
   return map;
 };
 
-const normalizeHeight = (
+const noiseValueToTerrain = (
   height: number
-): keyof typeof TERRAIN_DISTRIBUTION_MAP => {
+): Values<typeof TERRAIN_DISTRIBUTION_MAP> => {
   const normalized = mapRange(height, [-1, 1], [0, 1]);
 
-  return ((Math.round(normalized * 20) / 2) *
-    10) as keyof typeof TERRAIN_DISTRIBUTION_MAP;
+  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
+    typeof TERRAIN_DISTRIBUTION_MAP
+  >;
+  return TERRAIN_DISTRIBUTION_MAP[key];
 };
 
 const getNeighbors = (index: number, map: TerrainMap): CellNeighbors => {
@@ -156,7 +164,7 @@ const isParallelTwoSides = (edges: Edges) => {
 
 const computeAngleOneSide = ([
   isTopEdge,
-  isBottomEdge,
+  ,
   isLeftEdge,
   isRightEdge
 ]: Edges): MapCellAngle => {
@@ -180,7 +188,7 @@ const computeAngleTwoSides = (edges: Edges): MapCellAngle => {
 const computeAngleThreeSides = ([
   isTopEdge,
   isBottomEdge,
-  isLeftEdge,
+  ,
   isRightEdge
 ]: Edges): MapCellAngle => {
   if (!isTopEdge) return 0;
@@ -203,7 +211,6 @@ const computeEdges = (
     isDefined(neighbors.left) && neighbors.left < cell,
     isDefined(neighbors.right) && neighbors.right < cell
   ];
-  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
   const edgesCount = countEdges(edges);
 
   switch (edgesCount) {
@@ -228,18 +235,45 @@ const computeEdges = (
 const makeCell = (index: number, map: TerrainMap): MapCell => {
   return {
     terrain: map[index],
-    ...computeEdges(index, map)
+    ...computeEdges(index, map),
+    position: {
+      x: index % WIDTH,
+      y: Math.floor(index / WIDTH)
+    }
   };
 };
 
-export const createMap = (): MapLayout => {
-  console.time('mapgen');
-  const terrainMap = makeTerrainMap();
+export const createMap = (): GameMap => {
+  const terrainMap = makeTerrainMap(12345);
   const cells = terrainMap.map((_, index) => makeCell(index, terrainMap));
-  console.timeEnd('mapgen');
+
+  const getCellAt = ({ x, y }: Point) => cells[y * WIDTH + x];
+
   return {
     width: WIDTH,
     height: HEIGHT,
+    getCellAt,
+    getFieldOfView({ x, y }, fov) {
+      const min = {
+        x: clamp(x - fov, 0, WIDTH - 1),
+        y: clamp(y - fov, 0, HEIGHT - 1)
+      };
+      const max = {
+        x: clamp(x + fov, 0, WIDTH - 1),
+        y: clamp(y + fov, 0, HEIGHT - 1)
+      };
+
+      const cells: MapCell[] = [];
+      for (let cellX = min.x; cellX <= max.x; cellX++) {
+        for (let cellY = min.y; cellY <= max.y; cellY++) {
+          const isVisible = dist({ x, y }, { x: cellX, y: cellY }) <= fov;
+          if (isVisible) {
+            cells.push(getCellAt({ x, y }));
+          }
+        }
+      }
+      return cells;
+    },
     cells
   };
 };

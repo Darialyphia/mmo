@@ -1,8 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import type http from 'http';
 import { handleCORS } from './middlewares/cors';
-import { Point } from '@mmo/shared';
-import { Directions, createGame } from './game';
+import { Player, Point } from '@mmo/shared';
+import { Directions, GamePlayer, createGame } from './game';
 import { logger } from './utils/logger';
 
 type User = {
@@ -49,23 +49,29 @@ export const createIO = (server: http.Server) => {
   });
 
   const game = createGame();
-  game.on('update', gameState => {
-    io.emit('update', gameState);
+  game.on('update', snapshot => {
+    io.fetchSockets()
+      .then(sockets => {
+        sockets.forEach(socket => {
+          socket.emit('update', {
+            players: snapshot.players,
+            fieldOFView: snapshot.fieldOfView[socket.id]
+          });
+        });
+      })
+      .catch(console.log);
   });
 
   io.on('connection', socket => {
-    logger.debug(`socket connected :${socket.id}`);
     game.createPlayer(socket.id);
-
     socket.emit('map', game.map);
 
     socket.on('disconnect', () => {
-      logger.debug(`socket disconnected :${socket.id}`);
       game.removePlayer(socket.id);
     });
 
     socket.on('move', (directions: Directions) => {
-      game.dispatch({
+      game.schedule({
         type: 'move',
         payload: { playerId: socket.id, directions }
       });

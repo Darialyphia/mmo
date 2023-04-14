@@ -1,3 +1,4 @@
+import type { Point } from '../types';
 import type { Values } from '../types/utils';
 
 export type MapCellAngle = 0 | 90 | 180 | 270;
@@ -6,6 +7,7 @@ export type MapCell = {
   terrain: number;
   edge: MapCellEdge;
   angle: MapCellAngle;
+  position: Point;
 };
 
 export type MapLayout = {

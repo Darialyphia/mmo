@@ -49,40 +49,40 @@ export default defineConfig(() => ({
       dirs: ['./src/composables', './src/composables/**']
     }),
 
-    VitePWA({
-      registerType: 'prompt',
-      srcDir: 'src',
-      filename: 'sw.ts',
-      strategies: 'injectManifest',
-      devOptions: {
-        enabled: false,
-        type: 'module'
-      },
-      manifest: {
-        name: 'Claude mmo',
-        short_name: 'Claude',
-        description: 'Claude mmo application',
-        theme_color: '#ffffff',
-        icons: [
-          {
-            src: '/icon/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: '/icon/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    }),
+    // VitePWA({
+    //   registerType: 'prompt',
+    //   srcDir: 'src',
+    //   filename: 'sw.ts',
+    //   strategies: 'injectManifest',
+    //   devOptions: {
+    //     enabled: false,
+    //     type: 'module'
+    //   },
+    //   manifest: {
+    //     name: 'Claude mmo',
+    //     short_name: 'Claude',
+    //     description: 'Claude mmo application',
+    //     theme_color: '#ffffff',
+    //     icons: [
+    //       {
+    //         src: '/icon/icon-192x192.png',
+    //         sizes: '192x192',
+    //         type: 'image/png'
+    //       },
+    //       {
+    //         src: '/icon/icon-512x512.png',
+    //         sizes: '512x512',
+    //         type: 'image/png'
+    //       },
+    //       {
+    //         src: '/icon/icon-512x512.png',
+    //         sizes: '512x512',
+    //         type: 'image/png',
+    //         purpose: 'any maskable'
+    //       }
+    //     ]
+    //   }
+    // }),
 
     Components({
       dts: true,

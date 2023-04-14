@@ -11,7 +11,6 @@ import { createTileset } from './createTileset';
 import { spritePaths } from './sprites';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
-import { debounce } from 'lodash-es';
 
 const VARIANTS_BY_EDGES = {
   [MapCellEdge.NONE]: 4,
@@ -132,8 +131,8 @@ export const createMap = async ({
     mapContainer.addChild(currentChunkContainer);
 
     gameWorld.map.cells.forEach((cell, cellIndex) => {
-      const x = Math.floor(cellIndex % mapOptions.dimensions.w);
-      const y = Math.floor(cellIndex / mapOptions.dimensions.h);
+      const { x, y } = cell.position;
+
       if (
         x < currentChunk.x ||
         x > currentChunk.x + currentChunk.w ||

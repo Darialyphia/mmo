@@ -1,4 +1,5 @@
 import { clamp } from './helpers';
+import type { Point } from './types';
 import type { Matrix } from './types/utils';
 
 export const rotateMatrix = <T>(
@@ -35,6 +36,8 @@ export const mapRange = (
   return clamp(mapped, outRange[0], outRange[1]);
 };
 
+export const sat = (num: number) => clamp(num, 0, 1);
+
 export const deg2Rad = (degrees: number) => {
   return degrees * (Math.PI / 180);
 };
@@ -52,4 +55,11 @@ export const smootherlerp = (num: number, [min, max]: [number, number]) => {
 
 export const lerp = (num: number, [min, max]: [number, number]) => {
   return min + num * (max - min);
+};
+
+export const dist = (p1: Point, p2: Point) => {
+  const diffX = Math.abs(p2.x - p1.x);
+  const diffY = Math.abs(p2.y - p1.y);
+
+  return Math.sqrt(diffX ** 2 + diffY ** 2);
 };
