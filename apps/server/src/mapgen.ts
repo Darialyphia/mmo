@@ -16,6 +16,7 @@ import { makeNoise2D } from 'open-simplex-noise';
 import { Noise2D } from 'open-simplex-noise/lib/2d';
 
 type Height = Values<typeof HEIGHTS>;
+type Temperature = Values<typeof TEMPERATURES>;
 type CellNeighbors = {
   top: Nullable<Height>;
   bottom: Nullable<Height>;
@@ -58,6 +59,36 @@ const HEIGHT_DISTRIBUTION_MAP = {
   90: HEIGHTS.GROUND,
   95: HEIGHTS.GROUND,
   100: HEIGHTS.GROUND
+} as const;
+
+const TEMPERATURES = {
+  COLD: 0,
+  WARM: 1,
+  HOT: 2
+} as const;
+
+const TEMPERATURE_DISTRIBUTION_MAP = {
+  0: TEMPERATURES.COLD,
+  5: TEMPERATURES.COLD,
+  10: TEMPERATURES.COLD,
+  15: TEMPERATURES.COLD,
+  20: TEMPERATURES.COLD,
+  25: TEMPERATURES.WARM,
+  30: TEMPERATURES.WARM,
+  35: TEMPERATURES.WARM,
+  40: TEMPERATURES.WARM,
+  45: TEMPERATURES.WARM,
+  50: TEMPERATURES.WARM,
+  55: TEMPERATURES.WARM,
+  60: TEMPERATURES.WARM,
+  65: TEMPERATURES.WARM,
+  70: TEMPERATURES.WARM,
+  75: TEMPERATURES.HOT,
+  80: TEMPERATURES.HOT,
+  85: TEMPERATURES.HOT,
+  90: TEMPERATURES.HOT,
+  95: TEMPERATURES.HOT,
+  100: TEMPERATURES.HOT
 } as const;
 
 type NoiseRectangleOptions = {
@@ -107,12 +138,22 @@ const noiseValueToHeight = (
   >;
   return HEIGHT_DISTRIBUTION_MAP[key];
 };
+const noiseValueToTemperature = (
+  height: number
+): Values<typeof TEMPERATURE_DISTRIBUTION_MAP> => {
+  const normalized = mapRange(height, [-1, 1], [0, 1]);
+
+  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
+    typeof TEMPERATURE_DISTRIBUTION_MAP
+  >;
+  return TEMPERATURE_DISTRIBUTION_MAP[key];
+};
 
 const chunks = new Map<string, MapCell[]>();
 const getChunkKey = ({ x, y }: Point) => `${x}:${y}`;
 
-const generateChunk = (startsAt: Point, heightNoise: Noise2D) => {
-  const heightMap = makeNoiseRectangle((x, y) => heightNoise(x, y), {
+const generateHeightChunk = (startsAt: Point, noise: Noise2D) => {
+  const map = makeNoiseRectangle((x, y) => noise(x, y), {
     startsAt,
     frequency: 0.08,
     octaves: 4,
@@ -121,7 +162,7 @@ const generateChunk = (startsAt: Point, heightNoise: Noise2D) => {
     scale: noiseValueToHeight
   });
 
-  let chunk = heightMap.flat() as Height[];
+  let chunk = map.flat() as Height[];
 
   let needsAdjustmentPass = true;
   let passCount = 0;
@@ -163,10 +204,38 @@ const generateChunk = (startsAt: Point, heightNoise: Noise2D) => {
     doAdjustmentPass();
   }
 
-  const cells = chunk.map((cell, index) => {
+  return chunk;
+};
+
+const generateTemperatureChunk = (startsAt: Point, noise: Noise2D) => {
+  return makeNoiseRectangle((x, y) => noise(x, y), {
+    startsAt,
+    frequency: 0.04,
+    octaves: 1,
+    amplitude: 2,
+    persistence: 0.5,
+    scale: noiseValueToTemperature
+  }).flat() as Temperature[];
+};
+const generateChunk = (startsAt: Point, baseSeed: number) => {
+  const heightSeed = baseSeed;
+  const heightNoise = makeNoise2D(heightSeed);
+  const temperatureSeed = heightSeed + 1;
+  const temperatureNoise = makeNoise2D(temperatureSeed);
+
+  const heightChunk = generateHeightChunk(startsAt, heightNoise);
+  const temperatureChunk = generateTemperatureChunk(startsAt, temperatureNoise);
+
+  const chunk = Array.from({ length: heightChunk.length }, (_, index) => ({
+    height: heightChunk[index],
+    temperature: temperatureChunk[index]
+  }));
+
+  const cells = chunk.map(({ height, temperature }, index) => {
     return {
-      terrain: cell,
-      ...computeEdges(index, chunk),
+      height,
+      temperature,
+      ...computeEdges(index, heightChunk),
       position: {
         x: startsAt.x + (index % CHUNK_SIZE),
         y: startsAt.y + Math.floor(index / CHUNK_SIZE)
@@ -181,12 +250,7 @@ const getOrCreateChunk = (startsAt: Point, baseSeed: number) => {
   const key = getChunkKey(startsAt);
 
   if (!chunks.has(key)) {
-    const heightSeed = baseSeed;
-    const heightNoise = makeNoise2D(heightSeed);
-    // const temperatureSeed = heightSeed + 1;
-    // const temperatureNoise = makeNoise2D(temperatureSeed ?? Date.now());
-
-    chunks.set(key, generateChunk(startsAt, heightNoise));
+    chunks.set(key, generateChunk(startsAt, baseSeed));
   }
 
   return chunks.get(key)!;

@@ -17,6 +17,7 @@ export type AnyConstructor = Constructor<AnyObject>;
 export type AsyncReturnType<T extends (...args: any) => Promise<any>> =
   T extends (...args: any) => Promise<infer R> ? R : any;
 export type MaybePromise<T> = T | Promise<T>;
+export type Iterableify<T> = { [K in keyof T]: Iterable<T[K]> };
 
 export type ApiError = {
   message: string;

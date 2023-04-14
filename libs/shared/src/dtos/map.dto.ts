@@ -4,7 +4,8 @@ import type { Values } from '../types/utils';
 export type MapCellAngle = 0 | 90 | 180 | 270;
 
 export type MapCell = {
-  terrain: number;
+  height: number;
+  temperature: number;
   edge: MapCellEdge;
   angle: MapCellAngle;
   position: Point;

@@ -1,7 +1,7 @@
 import { z, type AnyZodObject } from 'zod';
 import { PaginatedResponse } from './dtos';
 import type { Point, Size } from './types/geometry';
-import type { Matrix } from './types/utils';
+import type { Iterableify, Matrix } from './types/utils';
 
 export const clamp = (num: number, min: number, max: number) =>
   Math.min(Math.max(num, min), max);

@@ -1,6 +1,5 @@
 import * as PIXI from 'pixi.js';
 import {
-  MapCellEdge,
   randomInt,
   type Rectangle,
   type Point,
@@ -15,16 +14,7 @@ import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
 import { throttle } from 'lodash-es';
 
-const VARIANTS_BY_EDGES = {
-  [MapCellEdge.NONE]: 4,
-  [MapCellEdge.ONE_SIDE]: 1,
-  [MapCellEdge.TWO_SIDES]: 1,
-  [MapCellEdge.THREE_SIDES]: 1,
-  [MapCellEdge.ALL_SIDES]: 1,
-  [MapCellEdge.CORNER]: 1
-} as const;
-const MAX_VARIANTS = Math.max(...Object.values(VARIANTS_BY_EDGES));
-
+const MAX_VARIANTS = 4;
 const MAX_TILES_PER_TERRAIN = 6;
 const TERRAINS_COUNT = 4;
 
@@ -39,17 +29,32 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const variantsCache = new Map<string, number>();
   const spriteCache = new Map<string, PIXI.Sprite>();
 
-  const tilesetOptions = {
-    path: spritePaths.tileSets.base,
-    id: 'baseTileset',
+  const tilesetBaseOptions = {
     dimensions: {
       w: CELL_SIZE * MAX_VARIANTS,
       h: CELL_SIZE * TERRAINS_COUNT * MAX_TILES_PER_TERRAIN
     },
     tileSize: CELL_SIZE
   };
+  const tilesetOptions = [
+    {
+      ...tilesetBaseOptions,
+      path: spritePaths.tileSets.snow,
+      id: 'snowTileset'
+    },
+    {
+      ...tilesetBaseOptions,
+      path: spritePaths.tileSets.base,
+      id: 'baseTileset'
+    },
+    {
+      ...tilesetBaseOptions,
+      path: spritePaths.tileSets.desert,
+      id: 'desetTileset'
+    }
+  ];
 
-  const sheet = await createTileset(tilesetOptions);
+  const sheets = await Promise.all(tilesetOptions.map(createTileset));
 
   const cells: MapCell[] = [];
   const cellKeys = new Map<string, number>();
@@ -115,18 +120,17 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     const cellKey = getCellKey(cell);
 
     if (!spriteCache.has(cellKey)) {
-      const variant =
-        variantsCache.get(cellKey) ??
-        randomInt(VARIANTS_BY_EDGES[cell.edge] - 1);
+      const variant = variantsCache.get(cellKey) ?? randomInt(MAX_VARIANTS - 1);
       variantsCache.set(cellKey, variant);
 
       const tileIndex =
-        (cell.terrain * MAX_TILES_PER_TERRAIN + cell.edge) * MAX_VARIANTS +
+        (cell.height * MAX_TILES_PER_TERRAIN + cell.edge) * MAX_VARIANTS +
         variant;
 
-      const sprite = new PIXI.Sprite(
-        sheet.textures[`${tilesetOptions.id}-${tileIndex}`]
-      );
+      const sheet = sheets[cell.temperature]!;
+      const { id } = tilesetOptions[cell.temperature]!;
+
+      const sprite = new PIXI.Sprite(sheet.textures[`${id}-${tileIndex}`]);
       sprite.anchor.set(0.5, 0.5);
       sprite.angle = cell.angle;
       sprite.cullable = true;
