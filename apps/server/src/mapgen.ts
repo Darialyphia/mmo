@@ -2,7 +2,6 @@ import {
   mapRange,
   isNever,
   type MapCellAngle,
-  type MapLayout,
   type MapCell,
   type Nullable,
   type Values,
@@ -13,69 +12,116 @@ import {
   Keys,
   dist
 } from '@mmo/shared';
-import { makeRectangle } from 'fractal-noise';
 import { makeNoise2D } from 'open-simplex-noise';
+import { Noise2D } from 'open-simplex-noise/lib/2d';
 
-type TerrainMap = Terrain[];
-
-type Terrain = Values<typeof TERRAINS>;
+type Height = Values<typeof HEIGHTS>;
 type CellNeighbors = {
-  top: Nullable<Terrain>;
-  bottom: Nullable<Terrain>;
-  left: Nullable<Terrain>;
-  right: Nullable<Terrain>;
+  top: Nullable<Height>;
+  bottom: Nullable<Height>;
+  left: Nullable<Height>;
+  right: Nullable<Height>;
 };
+type Noise2Fn = (x: number, y: number) => number;
 
-type GameMap = MapLayout & {
-  getCellAt(pt: Point): MapCell;
-  getFieldOfView(pt: Point, fov: number): MapCell[];
-};
-const WIDTH = 200;
-const HEIGHT = 200;
+const WIDTH = 500;
+const HEIGHT = 500;
+const CHUNK_SIZE = 25;
 // const SEED = 12345;
 
-const TERRAINS = {
-  WATER: 0,
-  SAND: 1,
-  GRASS: 2,
+const HEIGHTS = {
+  SEA_LEVEL: 0,
+  BEACH: 1,
+  GROUND: 2,
   ROCKS: 3
 } as const;
 
-const TERRAIN_DISTRIBUTION_MAP = {
-  0: TERRAINS.WATER,
-  5: TERRAINS.WATER,
-  10: TERRAINS.WATER,
-  15: TERRAINS.WATER,
-  20: TERRAINS.WATER,
-  25: TERRAINS.WATER,
-  30: TERRAINS.WATER,
-  35: TERRAINS.WATER,
-  40: TERRAINS.WATER,
-  45: TERRAINS.SAND,
-  50: TERRAINS.SAND,
-  55: TERRAINS.GRASS,
-  60: TERRAINS.GRASS,
-  65: TERRAINS.GRASS,
-  70: TERRAINS.GRASS,
-  75: TERRAINS.GRASS,
-  80: TERRAINS.GRASS,
-  85: TERRAINS.GRASS,
-  90: TERRAINS.GRASS,
-  95: TERRAINS.GRASS,
-  100: TERRAINS.GRASS
+const HEIGHT_DISTRIBUTION_MAP = {
+  0: HEIGHTS.SEA_LEVEL,
+  5: HEIGHTS.SEA_LEVEL,
+  10: HEIGHTS.SEA_LEVEL,
+  15: HEIGHTS.SEA_LEVEL,
+  20: HEIGHTS.SEA_LEVEL,
+  25: HEIGHTS.SEA_LEVEL,
+  30: HEIGHTS.SEA_LEVEL,
+  35: HEIGHTS.SEA_LEVEL,
+  40: HEIGHTS.SEA_LEVEL,
+  45: HEIGHTS.BEACH,
+  50: HEIGHTS.BEACH,
+  55: HEIGHTS.GROUND,
+  60: HEIGHTS.GROUND,
+  65: HEIGHTS.GROUND,
+  70: HEIGHTS.GROUND,
+  75: HEIGHTS.GROUND,
+  80: HEIGHTS.GROUND,
+  85: HEIGHTS.GROUND,
+  90: HEIGHTS.GROUND,
+  95: HEIGHTS.GROUND,
+  100: HEIGHTS.GROUND
 } as const;
 
-const makeTerrainMap = (seed?: number): TerrainMap => {
-  const noise2D = makeNoise2D(seed ?? Date.now());
+type NoiseRectangleOptions = {
+  startsAt: Point;
+  amplitude: number;
+  frequency: number;
+  octaves: number;
+  persistence: number;
+  scale?: (x: number) => number;
+};
 
-  const heightMap = makeRectangle(WIDTH, HEIGHT, (x, y) => noise2D(x, y), {
+const makeNoiseRectangle = (
+  noise2: Noise2Fn,
+  {
+    amplitude,
+    frequency,
+    octaves,
+    persistence,
+    scale = x => x,
+    startsAt
+  }: NoiseRectangleOptions
+): number[][] => {
+  const field: number[][] = new Array(CHUNK_SIZE);
+  for (let y = 0; y < CHUNK_SIZE; y++) {
+    field[y] = new Array(CHUNK_SIZE);
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+      let value = 0.0;
+      for (let octave = 0; octave < octaves; octave++) {
+        const freq = frequency * Math.pow(2, octave);
+        const n = noise2((startsAt.x + x) * freq, (startsAt.y + y) * freq);
+        value += n * (amplitude * Math.pow(persistence, octave));
+      }
+      const scaled = scale(value / (2 - 1 / Math.pow(2, octaves - 1)));
+      field[y][x] = scaled;
+    }
+  }
+  return field;
+};
+
+const noiseValueToHeight = (
+  height: number
+): Values<typeof HEIGHT_DISTRIBUTION_MAP> => {
+  const normalized = mapRange(height, [-1, 1], [0, 1]);
+
+  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
+    typeof HEIGHT_DISTRIBUTION_MAP
+  >;
+  return HEIGHT_DISTRIBUTION_MAP[key];
+};
+
+const chunks = new Map<string, MapCell[]>();
+const getChunkKey = ({ x, y }: Point) => `${x}:${y}`;
+
+const generateChunk = (startsAt: Point, heightNoise: Noise2D) => {
+  const heightMap = makeNoiseRectangle((x, y) => heightNoise(x, y), {
+    startsAt,
     frequency: 0.08,
     octaves: 4,
     amplitude: 2,
-    scale: noiseValueToTerrain
+    persistence: 0.5,
+    scale: noiseValueToHeight
   });
 
-  let map = heightMap.flat() as Terrain[];
+  let chunk = heightMap.flat() as Height[];
 
   let needsAdjustmentPass = true;
   let passCount = 0;
@@ -83,62 +129,78 @@ const makeTerrainMap = (seed?: number): TerrainMap => {
 
   // This wil smoothen sharp transition between terrain
   // for example if a grass tile is next to a water tile, it will replace it with a sand tile
-  // as soon as one tile has been changed, the whole map need to be rechecked again as this could have cascading effects
+  // as soon as one tile has been changed, the whole chunk need to be rechecked again as this could have cascading effects
+  // this is handling inconsistencies at the seams between chunks. Whatever for now.
   const doAdjustmentPass = () => {
     needsAdjustmentPass = false;
     passCount++;
 
-    const newMap = map.map((terrain, index) => {
-      const neighbors = getNeighbors(index, map);
-      let adjustedTerrain: Nullable<Terrain> = null;
+    const newMap = chunk.map((terrain, index) => {
+      const neighbors = getNeighbors(index, chunk);
+      let adjustedHeight: Nullable<Height> = null;
 
       Object.values(neighbors)
         .filter(isDefined)
-        .forEach(nTerrain => {
-          if (isDefined(adjustedTerrain)) return;
+        .forEach(nHeight => {
+          if (isDefined(adjustedHeight)) return;
 
-          const diff = terrain - nTerrain;
+          const diff = terrain - nHeight;
           if (Math.abs(diff) <= 1) return;
 
           needsAdjustmentPass = true;
           const adj = diff > 0 ? -1 : 1;
 
-          adjustedTerrain = (terrain + adj) as Terrain;
+          adjustedHeight = (terrain + adj) as Height;
         });
 
-      return adjustedTerrain ?? terrain;
+      return adjustedHeight ?? terrain;
     });
 
-    map = newMap;
+    chunk = newMap;
   };
 
   while (needsAdjustmentPass && passCount < MAX_PASSES) {
     doAdjustmentPass();
   }
 
-  return map;
+  const cells = chunk.map((cell, index) => {
+    return {
+      terrain: cell,
+      ...computeEdges(index, chunk),
+      position: {
+        x: startsAt.x + (index % CHUNK_SIZE),
+        y: startsAt.y + Math.floor(index / CHUNK_SIZE)
+      }
+    };
+  });
+
+  return cells;
 };
 
-const noiseValueToTerrain = (
-  height: number
-): Values<typeof TERRAIN_DISTRIBUTION_MAP> => {
-  const normalized = mapRange(height, [-1, 1], [0, 1]);
+const getOrCreateChunk = (startsAt: Point, baseSeed: number) => {
+  const key = getChunkKey(startsAt);
 
-  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
-    typeof TERRAIN_DISTRIBUTION_MAP
-  >;
-  return TERRAIN_DISTRIBUTION_MAP[key];
+  if (!chunks.has(key)) {
+    const heightSeed = baseSeed;
+    const heightNoise = makeNoise2D(heightSeed);
+    // const temperatureSeed = heightSeed + 1;
+    // const temperatureNoise = makeNoise2D(temperatureSeed ?? Date.now());
+
+    chunks.set(key, generateChunk(startsAt, heightNoise));
+  }
+
+  return chunks.get(key)!;
 };
 
-const getNeighbors = (index: number, map: TerrainMap): CellNeighbors => {
-  const isLeftEdge = index % WIDTH === 0;
-  const isRightEdge = index % WIDTH === WIDTH - 1;
-  const isTopEdge = index < WIDTH;
-  const isBottomEdge = map.length - 1 - index < WIDTH;
+const getNeighbors = (index: number, map: Height[]): CellNeighbors => {
+  const isLeftEdge = index % CHUNK_SIZE === 0;
+  const isRightEdge = index % CHUNK_SIZE === CHUNK_SIZE - 1;
+  const isTopEdge = index < CHUNK_SIZE;
+  const isBottomEdge = map.length - 1 - index < CHUNK_SIZE;
 
   return {
-    top: isTopEdge ? null : map[index - WIDTH],
-    bottom: isBottomEdge ? null : map[index + WIDTH],
+    top: isTopEdge ? null : map[index - CHUNK_SIZE],
+    bottom: isBottomEdge ? null : map[index + CHUNK_SIZE],
     left: isLeftEdge ? null : map[index - 1],
     right: isRightEdge ? null : map[index + 1]
   };
@@ -199,7 +261,7 @@ const computeAngleThreeSides = ([
 
 const computeEdges = (
   index: number,
-  map: TerrainMap
+  map: Height[]
   // @ts-ignore ts dumb
 ): Pick<MapCell, 'edge' | 'angle'> => {
   const cell = map[index];
@@ -232,28 +294,24 @@ const computeEdges = (
   }
 };
 
-const makeCell = (index: number, map: TerrainMap): MapCell => {
-  return {
-    terrain: map[index],
-    ...computeEdges(index, map),
-    position: {
-      x: index % WIDTH,
-      y: Math.floor(index / WIDTH)
-    }
+export const createMap = () => {
+  const seed = 12345;
+
+  const getCellAt = ({ x, y }: Point) => {
+    const chunkOrigin = {
+      x: Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE,
+      y: Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE
+    };
+
+    const cells = getOrCreateChunk(chunkOrigin, seed);
+
+    return cells[(y - chunkOrigin.y) * CHUNK_SIZE + x - chunkOrigin.x];
   };
-};
-
-export const createMap = (): GameMap => {
-  const terrainMap = makeTerrainMap(12345);
-  const cells = terrainMap.map((_, index) => makeCell(index, terrainMap));
-
-  const getCellAt = ({ x, y }: Point) => cells[y * WIDTH + x];
 
   return {
     width: WIDTH,
     height: HEIGHT,
-    getCellAt,
-    getFieldOfView({ x, y }, fov) {
+    getFieldOfView({ x, y }: Point, fov: number) {
       const min = {
         x: clamp(x - fov, 0, WIDTH - 1),
         y: clamp(y - fov, 0, HEIGHT - 1)
@@ -273,7 +331,6 @@ export const createMap = (): GameMap => {
         }
       }
       return cells;
-    },
-    cells
+    }
   };
 };

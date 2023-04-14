@@ -44,18 +44,18 @@ export const createCamera = (app: Application) => {
         )
       );
 
-      fow.clear();
-      fow.beginFill(0x000000, 0.5);
-      fow.drawRect(
-        container.pivot.x - app.screen.width / 2 / container.scale.x,
-        container.pivot.y - app.screen.height / 2 / container.scale.y,
-        app.screen.width,
-        app.screen.height
-      );
-      fow.beginHole();
-      fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 5);
-      fow.endHole();
-      fow.endFill();
+      // fow.clear();
+      // fow.beginFill(0x000000, 0.5);
+      // fow.drawRect(
+      //   container.pivot.x - app.screen.width / 2 / container.scale.x,
+      //   container.pivot.y - app.screen.height / 2 / container.scale.y,
+      //   app.screen.width,
+      //   app.screen.height
+      // );
+      // fow.beginHole();
+      // fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 7);
+      // fow.endHole();
+      // fow.endFill();
     }
   };
 };

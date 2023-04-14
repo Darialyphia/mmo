@@ -1,22 +1,10 @@
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import type http from 'http';
 import { handleCORS } from './middlewares/cors';
-import { Player, Point } from '@mmo/shared';
-import { Directions, GamePlayer, createGame } from './game';
-import { logger } from './utils/logger';
+import { Directions, createGame } from './game';
 
-type User = {
-  position: Point;
-  color: number;
-  id: string;
-};
 let io: Server;
-const usersBySocket = new Map<Socket, User>();
-// const socketsByUserId = new Map<Identifier, Socket>();
 
-// export const getSocket = (userId: UUID) => {
-//   return socketsByUserId.get(userId);
-// };
 export const getIo = () => {
   if (!io) throw new Error('referencing io before initialization');
   return io;
@@ -49,6 +37,7 @@ export const createIO = (server: http.Server) => {
   });
 
   const game = createGame();
+
   game.on('update', snapshot => {
     io.fetchSockets()
       .then(sockets => {
