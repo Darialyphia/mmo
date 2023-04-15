@@ -125,8 +125,10 @@ export const createGame = () => {
   const createPlayer = (id: string) => {
     const player = {
       gridItem: grid.add({
-        x: randomInt(map.width),
-        y: randomInt(map.height),
+        // x: randomInt(map.width),
+        // y: randomInt(map.height),
+        x: 0,
+        y: 0,
         w: 1,
         h: 1
       }),

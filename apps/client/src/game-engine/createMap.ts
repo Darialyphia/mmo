@@ -9,7 +9,8 @@ import {
   type GameStateSnapshotDto,
   type MapCellAngle,
   MapCellEdge,
-  isNever
+  isNever,
+  type Nullable
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { spritePaths } from './sprites';
@@ -172,23 +173,37 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   };
 
   const computeCellEdges = (cell: MapCell) => {
-    const neighbors = getNeighbors(cell, cellsByKey, meta);
+    const { top, bottom, left, right } = getNeighbors(cell, cellsByKey, meta);
     if (
-      neighbors.top === undefined ||
-      neighbors.bottom === undefined ||
-      neighbors.left === undefined ||
-      neighbors.right === undefined
+      top === undefined ||
+      bottom === undefined ||
+      left === undefined ||
+      right === undefined
     ) {
       undecidedEdges.set(getCellKey(cell.position), true);
     } else {
       undecidedEdges.delete(getCellKey(cell.position));
     }
 
+    const isEdgeValid = (neighbor: Nullable<MapCell>) => {
+      if (cell.position.x === 13 && cell.position.y === 3) {
+        console.log(neighbor);
+      }
+      if (!isDefined(neighbor)) return false;
+      if (neighbor.height !== 0) {
+        return (
+          neighbor.temperature === cell.temperature &&
+          neighbor.height < cell.height
+        );
+      }
+      return neighbor.height < cell.height;
+    };
+    // We're not counting neighbors from different biomes as edges as the seams are computed differently
     const edges: [boolean, boolean, boolean, boolean] = [
-      isDefined(neighbors.top) && neighbors.top.height < cell.height,
-      isDefined(neighbors.bottom) && neighbors.bottom.height < cell.height,
-      isDefined(neighbors.left) && neighbors.left.height < cell.height,
-      isDefined(neighbors.right) && neighbors.right.height < cell.height
+      isEdgeValid(top),
+      isEdgeValid(bottom),
+      isEdgeValid(left),
+      isEdgeValid(right)
     ];
 
     const edgesCount = countEdges(edges);
@@ -252,6 +267,15 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
           app.ticker.remove(increaseAlpha);
         }
       };
+
+      const text = new PIXI.Text(`${cell.position.x}:${cell.position.y}`, {
+        fontFamily: 'Helvetica',
+        fontSize: 10,
+        fill: 0x000000
+      });
+      text.scale.set(0.5, 0.5);
+      text.angle = -1 * angle;
+      sprite.addChild(text);
       app.ticker.add(increaseAlpha);
 
       spriteCache.set(cellKey, sprite);
