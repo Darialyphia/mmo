@@ -1,15 +1,18 @@
 import { randomInt } from 'crypto';
-import { createMap } from './mapgen';
+import { GameMap, createMap } from './mapgen';
 import { EventEmitter } from 'events';
 import { keyBy } from 'lodash-es';
 import {
   GridItem,
   MapCell,
   Player,
+  Point,
   SpatialHashGrid,
+  addVector,
   clamp,
   createSpatialHashGrid,
-  isNever
+  isNever,
+  setMagnitude
 } from '@mmo/shared';
 import TypedEmitter from 'typed-emitter';
 
@@ -68,23 +71,36 @@ const createTaskQueue = <TTask extends () => void>() => {
   };
 };
 
-const createMovementSystem = (grid: SpatialHashGrid) => {
+export function computeVelocity(directions: Directions, speed: number): Point {
+  const vel = { x: 0, y: 0 };
+  if (directions.right) {
+    vel.x += 1;
+  }
+  if (directions.left) {
+    vel.x -= 1;
+  }
+  if (directions.up) {
+    vel.y -= 1;
+  }
+  if (directions.down) {
+    vel.y += 1;
+  }
+  return setMagnitude(vel, speed);
+}
+
+const createMovementSystem = (map: GameMap, grid: SpatialHashGrid) => {
   return (players: GamePlayer[]) => {
     players.forEach(player => {
-      if (player.directions.up) {
-        player.gridItem.y -= PLAYER_SPEED;
-      }
-      if (player.directions.down) {
-        player.gridItem.y += PLAYER_SPEED;
-      }
-      if (player.directions.left) {
-        player.gridItem.x -= PLAYER_SPEED;
-      }
-      if (player.directions.right) {
-        player.gridItem.x += PLAYER_SPEED;
-      }
-      player.gridItem.x = clamp(player.gridItem.x, 0, grid.dimensions.w - 1);
-      player.gridItem.y = clamp(player.gridItem.y, 0, grid.dimensions.h - 1);
+      const velocity = computeVelocity(player.directions, PLAYER_SPEED);
+      const newPos = addVector(
+        { x: player.gridItem.x, y: player.gridItem.y },
+        velocity
+      );
+
+      const cell = map.getCellAt(newPos);
+      if (cell.height === 0) return;
+      player.gridItem.x = clamp(newPos.x, 0, grid.dimensions.w - 1);
+      player.gridItem.y = clamp(newPos.y, 0, grid.dimensions.h - 1);
     });
   };
 };
@@ -99,7 +115,7 @@ export const createGame = () => {
       end: { x: map.width, y: map.height }
     }
   });
-  const movementSystem = createMovementSystem(grid);
+  const movementSystem = createMovementSystem(map, grid);
 
   const handleEvent = (event: GameEvent) => {
     const type = event.type;

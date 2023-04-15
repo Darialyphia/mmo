@@ -273,6 +273,8 @@ export const createMap = () => {
   const seed = 12345;
 
   const getCellAt = ({ x, y }: Point) => {
+    x = Math.round(x);
+    y = Math.round(y);
     const chunkOrigin = {
       x: Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE,
       y: Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE
@@ -286,6 +288,7 @@ export const createMap = () => {
   return {
     width: WIDTH,
     height: HEIGHT,
+    getCellAt,
     getFieldOfView({ x, y }: Point, fov: number) {
       x = Math.round(x);
       y = Math.round(y);
@@ -311,3 +314,5 @@ export const createMap = () => {
     }
   };
 };
+
+export type GameMap = ReturnType<typeof createMap>;
