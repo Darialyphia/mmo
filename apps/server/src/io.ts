@@ -38,25 +38,38 @@ export const createIO = (server: http.Server) => {
 
   const game = createGame();
 
-  game.on('update', snapshot => {
-    io.fetchSockets()
-      .then(sockets => {
-        sockets.forEach(socket => {
-          socket.emit('update', {
-            players: snapshot.players,
-            fieldOfView: snapshot.fieldOfView[socket.id]
-          });
-        });
-      })
-      .catch(console.log);
+  game.on('update', async snapshot => {
+    const sockets = await io.fetchSockets();
+    sockets.forEach(socket => {
+      socket.emit('update', {
+        players: snapshot.players,
+        fieldOfView: snapshot.fieldOfView[socket.id]
+      });
+    });
   });
 
   io.on('connection', socket => {
-    game.createPlayer(socket.id);
+    if (!game.isRunning) {
+      game.start();
+    }
+
+    game.schedule({
+      type: 'player joined',
+      payload: { playerId: socket.id }
+    });
+
     socket.emit('game-meta', game.meta);
 
-    socket.on('disconnect', () => {
-      game.removePlayer(socket.id);
+    socket.on('disconnect', async () => {
+      game.schedule({
+        type: 'player joined',
+        payload: { playerId: socket.id }
+      });
+
+      const sockets = await io.fetchSockets();
+      if (!sockets.length) {
+        game.stop();
+      }
     });
 
     socket.on('move', (directions: Directions) => {

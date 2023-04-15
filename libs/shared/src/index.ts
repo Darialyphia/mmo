@@ -6,3 +6,4 @@ export * from './math';
 export * from './vectors';
 export * from './spatialHash';
 export * from './collisions';
+export * from './queue';
