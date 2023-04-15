@@ -1,10 +1,15 @@
-import { clamp, lerp, type Point } from '@mmo/shared';
+import { clamp, lerp, type GameMeta, type Point } from '@mmo/shared';
 import { Application, Container, Graphics } from 'pixi.js';
 import { CELL_SIZE } from './constants';
 
 export type Camera = ReturnType<typeof createCamera>;
 
-export const createCamera = (app: Application) => {
+type CreateCameraOptions = {
+  app: Application;
+  meta: GameMeta;
+};
+
+export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   const container = new Container();
   container.scale.set(2, 2);
   container.position.set(app.screen.width / 2, app.screen.height / 2);
@@ -33,29 +38,33 @@ export const createCamera = (app: Application) => {
         clamp(
           newPivot.x,
           app.screen.width / 2 / container.scale.x - CELL_SIZE / 2,
-          (app.stage.width - app.screen.width / 2) / container.scale.x -
+          (app.stage.width,
+          meta.width * CELL_SIZE * container.scale.x - app.screen.width / 2) /
+            container.scale.x -
             CELL_SIZE / 2
         ),
         clamp(
           newPivot.y,
           app.screen.height / 2 / container.scale.y - CELL_SIZE / 2,
-          (app.stage.height - app.screen.height / 2) / container.scale.y -
+          (app.stage.width,
+          meta.height * CELL_SIZE * container.scale.y - app.screen.height / 2) /
+            container.scale.y -
             CELL_SIZE / 2
         )
       );
 
-      // fow.clear();
-      // fow.beginFill(0x000000, 0.5);
-      // fow.drawRect(
-      //   container.pivot.x - app.screen.width / 2 / container.scale.x,
-      //   container.pivot.y - app.screen.height / 2 / container.scale.y,
-      //   app.screen.width,
-      //   app.screen.height
-      // );
-      // fow.beginHole();
-      // fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 7);
-      // fow.endHole();
-      // fow.endFill();
+      fow.clear();
+      fow.beginFill(0x000000, 0.5);
+      fow.drawRect(
+        container.pivot.x - app.screen.width / container.scale.x,
+        container.pivot.y - app.screen.height / container.scale.y,
+        app.screen.width * 2,
+        app.screen.height * 2
+      );
+      fow.beginHole();
+      fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 9);
+      fow.endHole();
+      fow.endFill();
     }
   };
 };

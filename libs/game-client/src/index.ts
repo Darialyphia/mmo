@@ -58,7 +58,7 @@ export const createGameEngine = async ({
   // create the stage instead of container
   app.stage = new Stage();
 
-  const camera = createCamera(app);
+  const camera = createCamera({ app, meta });
   const map = await createMap({ app, camera, meta });
   const controls = createControls();
   controls.on('move', directions => {

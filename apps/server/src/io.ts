@@ -62,7 +62,7 @@ export const createIO = (server: http.Server) => {
 
     socket.on('disconnect', async () => {
       game.schedule({
-        type: 'player joined',
+        type: 'player left',
         payload: { playerId: socket.id }
       });
 

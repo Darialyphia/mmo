@@ -6,34 +6,21 @@ import {
   clamp,
   type GameMeta,
   type MapCell,
-  type GameStateSnapshotDto,
-  MapCellEdge,
-  isNever,
-  type Nullable
+  type GameStateSnapshotDto
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { spritePaths } from './sprites';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
 import { throttle } from 'lodash-es';
-import {
-  computeAngleOneSide,
-  computeAngleThreeSides,
-  computeAngleTwoSides,
-  countEdges,
-  isParallelTwoSides,
-  type Edges,
-  getEdgeInfos,
-  isHeightEdge,
-  isBiomeEdge
-} from './utils';
+import { getEdgeInfos, isHeightEdge, isBiomeEdge } from './utils';
 
 const MAX_VARIANTS = 4;
 const MAX_TILES_PER_TERRAIN = 6;
 const TERRAINS_COUNT = 4;
 const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
 
-type CreateMapOptions = {
+export type CreateMapOptions = {
   app: PIXI.Application;
   camera: Camera;
   meta: GameMeta;
