@@ -3,7 +3,6 @@
   "include": ["src/**/*.ts", "tsup.config.ts", "env.d.ts"],
   "exclude": [".git", "node_modules"],
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
     "composite": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,

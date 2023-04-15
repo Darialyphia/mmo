@@ -7,7 +7,6 @@
     "playwright.config.*"
   ],
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
     "composite": true,
     "types": ["node"]
   }

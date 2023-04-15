@@ -18,6 +18,7 @@ export type AsyncReturnType<T extends (...args: any) => Promise<any>> =
   T extends (...args: any) => Promise<infer R> ? R : any;
 export type MaybePromise<T> = T | Promise<T>;
 export type Iterableify<T> = { [K in keyof T]: Iterable<T[K]> };
+export type Defined<T> = Extract<T, undefined | null>;
 
 export type ApiError = {
   message: string;

@@ -1,30 +1,8 @@
-import {
-  type MapCellAngle,
-  type MapCell,
-  type Nullable,
-  type Values,
-  type Point,
-  type Keys,
-  isDefined,
-  mapRange,
-  clamp,
-  dist
-} from '@mmo/shared';
+import { zip } from 'lodash-es';
+import { type MapCell, type Point, clamp, dist } from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
-import type { Noise2D } from 'open-simplex-noise/lib/2d';
 import { CHUNK_SIZE, HEIGHT, WIDTH } from './constants';
-
-type Height = Values<typeof HEIGHTS>;
-type Temperature = Values<typeof TEMPERATURES>;
-type CellNeighbors = {
-  top: Nullable<Height>;
-  bottom: Nullable<Height>;
-  left: Nullable<Height>;
-  right: Nullable<Height>;
-};
-type Noise2Fn = (x: number, y: number) => number;
-
-// const SEED = 12345;
+import { generateNoiseChunk, sampleNoise } from './utils/noise';
 
 const HEIGHTS = {
   SEA_LEVEL: 0,
@@ -87,158 +65,35 @@ const TEMPERATURE_DISTRIBUTION_MAP = {
   100: TEMPERATURES.HOT
 } as const;
 
-type NoiseRectangleOptions = {
-  startsAt: Point;
-  amplitude: number;
-  frequency: number;
-  octaves: number;
-  persistence: number;
-  scale?: (x: number) => number;
-};
-
-const makeNoiseRectangle = (
-  noise2: Noise2Fn,
-  {
-    amplitude,
-    frequency,
-    octaves,
-    persistence,
-    scale = x => x,
-    startsAt
-  }: NoiseRectangleOptions
-): number[][] => {
-  const field: number[][] = new Array(CHUNK_SIZE);
-  for (let y = 0; y < CHUNK_SIZE; y++) {
-    field[y] = new Array(CHUNK_SIZE);
-    for (let x = 0; x < CHUNK_SIZE; x++) {
-      let value = 0.0;
-      for (let octave = 0; octave < octaves; octave++) {
-        const freq = frequency * Math.pow(2, octave);
-        const n = noise2((startsAt.x + x) * freq, (startsAt.y + y) * freq);
-        value += n * (amplitude * Math.pow(persistence, octave));
-      }
-      const scaled = scale(value / (2 - 1 / Math.pow(2, octaves - 1)));
-      field[y][x] = scaled;
-    }
-  }
-  return field;
-};
-
-const noiseValueToHeight = (
-  height: number
-): Values<typeof HEIGHT_DISTRIBUTION_MAP> => {
-  const normalized = mapRange(height, [-1, 1], [0, 1]);
-
-  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
-    typeof HEIGHT_DISTRIBUTION_MAP
-  >;
-  return HEIGHT_DISTRIBUTION_MAP[key];
-};
-const noiseValueToTemperature = (
-  height: number
-): Values<typeof TEMPERATURE_DISTRIBUTION_MAP> => {
-  const normalized = mapRange(height, [-1, 1], [0, 1]);
-
-  const key = ((Math.round(normalized * 20) / 2) * 10) as Keys<
-    typeof TEMPERATURE_DISTRIBUTION_MAP
-  >;
-  return TEMPERATURE_DISTRIBUTION_MAP[key];
-};
-
 const chunks = new Map<string, MapCell[]>();
 const getChunkKey = ({ x, y }: Point) => `${x}:${y}`;
 
-const generateHeightChunk = (startsAt: Point, noise: Noise2D) => {
-  const map = makeNoiseRectangle((x, y) => noise(x, y), {
+const generateChunk = (startsAt: Point, baseSeed: number) => {
+  const heightMap = generateNoiseChunk({
     startsAt,
+    noise: makeNoise2D(baseSeed),
     frequency: 0.08,
     octaves: 4,
-    amplitude: 2,
-    persistence: 0.5,
-    scale: noiseValueToHeight
+    mapFn: n => sampleNoise(n, HEIGHT_DISTRIBUTION_MAP),
+    fix: true
   });
 
-  let chunk = map.flat() as Height[];
-
-  let needsAdjustmentPass = true;
-  let passCount = 0;
-  const MAX_PASSES = 100;
-
-  // This wil smoothen sharp transition between terrain
-  // for example if a grass tile is next to a water tile, it will replace it with a sand tile
-  // as soon as one tile has been changed, the whole chunk need to be rechecked again as this could have cascading effects
-  // this is handling inconsistencies at the seams between chunks. Whatever for now.
-  const doAdjustmentPass = () => {
-    needsAdjustmentPass = false;
-    passCount++;
-
-    const newMap = chunk.map((terrain, index) => {
-      const neighbors = getNeighbors(index, chunk);
-      let adjustedHeight: Nullable<Height> = null;
-
-      Object.values(neighbors)
-        .filter(isDefined)
-        .forEach(nHeight => {
-          if (isDefined(adjustedHeight)) return;
-
-          const diff = terrain - nHeight;
-          if (Math.abs(diff) <= 1) return;
-
-          needsAdjustmentPass = true;
-          const adj = diff > 0 ? -1 : 1;
-
-          adjustedHeight = (terrain + adj) as Height;
-        });
-
-      return adjustedHeight ?? terrain;
-    });
-
-    chunk = newMap;
-  };
-
-  while (needsAdjustmentPass && passCount < MAX_PASSES) {
-    doAdjustmentPass();
-  }
-
-  return chunk;
-};
-
-const generateTemperatureChunk = (startsAt: Point, noise: Noise2D) => {
-  return makeNoiseRectangle((x, y) => noise(x, y), {
+  const temperatureMap = generateNoiseChunk({
     startsAt,
+    noise: makeNoise2D(baseSeed + 1),
     frequency: 0.02,
     octaves: 1,
-    amplitude: 2,
-    persistence: 0.5,
-    scale: noiseValueToTemperature
-  }).flat() as Temperature[];
-};
-const generateChunk = (startsAt: Point, baseSeed: number) => {
-  const heightSeed = baseSeed;
-  const heightNoise = makeNoise2D(heightSeed);
-  const temperatureSeed = heightSeed + 1;
-  const temperatureNoise = makeNoise2D(temperatureSeed);
-
-  const heightChunk = generateHeightChunk(startsAt, heightNoise);
-  const temperatureChunk = generateTemperatureChunk(startsAt, temperatureNoise);
-
-  const chunk = Array.from({ length: heightChunk.length }, (_, index) => ({
-    height: heightChunk[index],
-    temperature: temperatureChunk[index]
-  }));
-
-  const cells = chunk.map(({ height, temperature }, index) => {
-    return {
-      height,
-      temperature,
-      position: {
-        x: startsAt.x + (index % CHUNK_SIZE),
-        y: startsAt.y + Math.floor(index / CHUNK_SIZE)
-      }
-    };
+    mapFn: n => sampleNoise(n, TEMPERATURE_DISTRIBUTION_MAP)
   });
 
-  return cells;
+  return zip(heightMap, temperatureMap).map(([height, temperature], index) => ({
+    height: height as number,
+    temperature: temperature as number,
+    position: {
+      x: startsAt.x + (index % CHUNK_SIZE),
+      y: startsAt.y + Math.floor(index / CHUNK_SIZE)
+    }
+  }));
 };
 
 const getOrCreateChunk = (startsAt: Point, baseSeed: number) => {
@@ -251,63 +106,51 @@ const getOrCreateChunk = (startsAt: Point, baseSeed: number) => {
   return chunks.get(key)!;
 };
 
-const getNeighbors = (index: number, map: Height[]): CellNeighbors => {
-  const isLeftEdge = index % CHUNK_SIZE === 0;
-  const isRightEdge = index % CHUNK_SIZE === CHUNK_SIZE - 1;
-  const isTopEdge = index < CHUNK_SIZE;
-  const isBottomEdge = map.length - 1 - index < CHUNK_SIZE;
-
-  return {
-    top: isTopEdge ? null : map[index - CHUNK_SIZE],
-    bottom: isBottomEdge ? null : map[index + CHUNK_SIZE],
-    left: isLeftEdge ? null : map[index - 1],
-    right: isRightEdge ? null : map[index + 1]
+const getCellAt = ({ x, y }: Point, seed: number) => {
+  x = Math.round(x);
+  y = Math.round(y);
+  const chunkOrigin = {
+    x: Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE,
+    y: Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE
   };
+
+  const cells = getOrCreateChunk(chunkOrigin, seed);
+
+  return cells[(y - chunkOrigin.y) * CHUNK_SIZE + x - chunkOrigin.x];
+};
+
+const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
+  x = Math.round(x);
+  y = Math.round(y);
+  const min = {
+    x: clamp(x - fov, 0, WIDTH - 1),
+    y: clamp(y - fov, 0, HEIGHT - 1)
+  };
+  const max = {
+    x: clamp(x + fov, 0, WIDTH - 1),
+    y: clamp(y + fov, 0, HEIGHT - 1)
+  };
+
+  const cells: MapCell[] = [];
+  for (let cellX = min.x; cellX <= max.x; cellX++) {
+    for (let cellY = min.y; cellY <= max.y; cellY++) {
+      const isVisible = dist({ x, y }, { x: cellX, y: cellY }) <= fov;
+      if (isVisible) {
+        cells.push(getCellAt({ x: cellX, y: cellY }, seed));
+      }
+    }
+  }
+  return cells;
 };
 
 export const createMap = () => {
   const seed = 12345;
 
-  const getCellAt = ({ x, y }: Point) => {
-    x = Math.round(x);
-    y = Math.round(y);
-    const chunkOrigin = {
-      x: Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE,
-      y: Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE
-    };
-
-    const cells = getOrCreateChunk(chunkOrigin, seed);
-
-    return cells[(y - chunkOrigin.y) * CHUNK_SIZE + x - chunkOrigin.x];
-  };
-
   return {
     width: WIDTH,
     height: HEIGHT,
-    getCellAt,
-    getFieldOfView({ x, y }: Point, fov: number) {
-      x = Math.round(x);
-      y = Math.round(y);
-      const min = {
-        x: clamp(x - fov, 0, WIDTH - 1),
-        y: clamp(y - fov, 0, HEIGHT - 1)
-      };
-      const max = {
-        x: clamp(x + fov, 0, WIDTH - 1),
-        y: clamp(y + fov, 0, HEIGHT - 1)
-      };
-
-      const cells: MapCell[] = [];
-      for (let cellX = min.x; cellX <= max.x; cellX++) {
-        for (let cellY = min.y; cellY <= max.y; cellY++) {
-          const isVisible = dist({ x, y }, { x: cellX, y: cellY }) <= fov;
-          if (isVisible) {
-            cells.push(getCellAt({ x: cellX, y: cellY }));
-          }
-        }
-      }
-      return cells;
-    }
+    getCellAt: (pt: Point) => getCellAt(pt, seed),
+    getFieldOfView: (pt: Point, fov: number) => getFieldOfView(pt, fov, seed)
   };
 };
 

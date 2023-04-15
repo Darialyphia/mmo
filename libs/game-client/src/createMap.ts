@@ -189,7 +189,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       sprite.alpha = 0;
 
       const increaseAlpha = () => {
-        sprite.alpha += 0.06;
+        sprite.alpha += 0.2;
         if (sprite.alpha >= 1) {
           app.ticker.remove(increaseAlpha);
         }
