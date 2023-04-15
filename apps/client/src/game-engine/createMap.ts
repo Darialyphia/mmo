@@ -7,7 +7,6 @@ import {
   type GameMeta,
   type MapCell,
   type GameStateSnapshotDto,
-  type MapCellAngle,
   MapCellEdge,
   isNever,
   type Nullable
@@ -17,6 +16,17 @@ import { spritePaths } from './sprites';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
 import { throttle } from 'lodash-es';
+import {
+  computeAngleOneSide,
+  computeAngleThreeSides,
+  computeAngleTwoSides,
+  countEdges,
+  isParallelTwoSides,
+  type Edges,
+  getEdgeInfos,
+  isHeightEdge,
+  isBiomeEdge
+} from './utils';
 
 const MAX_VARIANTS = 4;
 const MAX_TILES_PER_TERRAIN = 6;
@@ -55,59 +65,6 @@ const getNeighbors = (
   };
 };
 
-const countEdges = (edges: [boolean, boolean, boolean, boolean]) =>
-  edges.filter(edge => !!edge).length as Exclude<
-    MapCellEdge,
-    (typeof MapCellEdge)['CORNER']
-  >;
-
-type Edges = [boolean, boolean, boolean, boolean];
-
-const isParallelTwoSides = (edges: Edges) => {
-  const edgesCount = countEdges(edges);
-  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
-
-  return (
-    edgesCount === 2 &&
-    ((isTopEdge && isBottomEdge) || (isLeftEdge && isRightEdge))
-  );
-};
-
-const computeAngleOneSide = ([
-  isTopEdge,
-  ,
-  isLeftEdge,
-  isRightEdge
-]: Edges): MapCellAngle => {
-  if (isLeftEdge) return 0;
-  if (isTopEdge) return 90;
-  if (isRightEdge) return 180;
-  return 270;
-};
-
-const computeAngleTwoSides = (edges: Edges): MapCellAngle => {
-  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
-
-  if (isParallelTwoSides(edges)) return isLeftEdge ? 0 : 90;
-  if (isLeftEdge && isTopEdge) return 0;
-  if (isTopEdge && isRightEdge) return 90;
-  if (isRightEdge && isBottomEdge) return 180;
-
-  return 270;
-};
-
-const computeAngleThreeSides = ([
-  isTopEdge,
-  isBottomEdge,
-  ,
-  isRightEdge
-]: Edges): MapCellAngle => {
-  if (!isTopEdge) return 0;
-  if (!isRightEdge) return 90;
-  if (!isBottomEdge) return 180;
-  return 270;
-};
-
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const spriteCache = new Map<string, PIXI.Sprite>();
 
@@ -120,13 +77,22 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   };
 
   const sheets = await Promise.all(
-    Object.values(spritePaths.tileSets).map(path =>
-      createTileset({
-        ...tilesetBaseOptions,
-        path
-      })
-    )
+    Object.values(spritePaths.tileSets)
+      .map(path =>
+        createTileset({
+          ...tilesetBaseOptions,
+          path
+        })
+      )
+      .concat(
+        createTileset({
+          dimensions: { w: CELL_SIZE, h: 6 * CELL_SIZE },
+          tileSize: CELL_SIZE,
+          path: spritePaths.utils.biomeSeams
+        })
+      )
   );
+  const biomeSeamsSheet = sheets[3]!;
 
   const cells: MapCell[] = [];
   const cellsByKey = new Map<string, MapCell>();
@@ -185,46 +151,20 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       undecidedEdges.delete(getCellKey(cell.position));
     }
 
-    const isEdgeValid = (neighbor: Nullable<MapCell>) => {
-      if (cell.position.x === 13 && cell.position.y === 3) {
-        console.log(neighbor);
-      }
-      if (!isDefined(neighbor)) return false;
-      if (neighbor.height !== 0) {
-        return (
-          neighbor.temperature === cell.temperature &&
-          neighbor.height < cell.height
-        );
-      }
-      return neighbor.height < cell.height;
+    return {
+      terrain: getEdgeInfos([
+        isHeightEdge(top, cell),
+        isHeightEdge(bottom, cell),
+        isHeightEdge(left, cell),
+        isHeightEdge(right, cell)
+      ]),
+      biome: getEdgeInfos([
+        isBiomeEdge(top, cell),
+        isBiomeEdge(bottom, cell),
+        isBiomeEdge(left, cell),
+        isBiomeEdge(right, cell)
+      ])
     };
-    // We're not counting neighbors from different biomes as edges as the seams are computed differently
-    const edges: [boolean, boolean, boolean, boolean] = [
-      isEdgeValid(top),
-      isEdgeValid(bottom),
-      isEdgeValid(left),
-      isEdgeValid(right)
-    ];
-
-    const edgesCount = countEdges(edges);
-
-    switch (edgesCount) {
-      case MapCellEdge.NONE:
-        return { edge: edgesCount, angle: 0 };
-      case MapCellEdge.ONE_SIDE:
-        return { edge: edgesCount, angle: computeAngleOneSide(edges) };
-      case MapCellEdge.TWO_SIDES:
-        return {
-          edge: isParallelTwoSides(edges) ? edgesCount : MapCellEdge.CORNER,
-          angle: computeAngleTwoSides(edges)
-        };
-      case MapCellEdge.THREE_SIDES:
-        return { edge: edgesCount, angle: computeAngleThreeSides(edges) };
-      case MapCellEdge.ALL_SIDES:
-        return { edge: edgesCount, angle: 0 };
-      default:
-        isNever(edgesCount);
-    }
   };
 
   const checkChunkEdges = () => {
@@ -248,48 +188,60 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     const cellKey = getCellKey(cell.position);
 
     if (!spriteCache.has(cellKey)) {
-      const { edge, angle } = computeCellEdges(cell)!;
+      const { terrain, biome } = computeCellEdges(cell)!;
       const tileIndex =
-        (cell.height * MAX_TILES_PER_TERRAIN + edge) * MAX_VARIANTS +
+        (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
         randomInt(MAX_VARIANTS - 1);
 
       const sheet = sheets[cell.temperature]!;
 
-      const sprite = new PIXI.Sprite(sheet.textures[`${tileIndex}`]);
+      const sprite = new PIXI.Sprite(sheet.textures[tileIndex]);
       sprite.anchor.set(0.5, 0.5);
-      sprite.angle = angle;
+      sprite.angle = terrain.angle;
       sprite.cullable = true;
       sprite.alpha = 0;
 
       const increaseAlpha = () => {
-        sprite.alpha += 0.05;
+        sprite.alpha += 0.06;
         if (sprite.alpha >= 1) {
           app.ticker.remove(increaseAlpha);
         }
       };
-
-      const text = new PIXI.Text(`${cell.position.x}:${cell.position.y}`, {
-        fontFamily: 'Helvetica',
-        fontSize: 10,
-        fill: 0x000000
-      });
-      text.scale.set(0.5, 0.5);
-      text.angle = -1 * angle;
-      sprite.addChild(text);
       app.ticker.add(increaseAlpha);
+
+      if (biome.edge) {
+        const biomeSprite = new PIXI.Sprite(
+          biomeSeamsSheet.textures[biome.edge]
+        );
+        biomeSprite.anchor.set(0.5, 0.5);
+        biomeSprite.angle = biome.angle - terrain.angle;
+        biomeSprite.cullable = true;
+        sprite.addChild(biomeSprite);
+      }
 
       spriteCache.set(cellKey, sprite);
     } else if (undecidedEdges.has(cellKey)) {
       const sprite = spriteCache.get(cellKey)!;
-      const { edge, angle } = computeCellEdges(cell)!;
+      const { terrain, biome } = computeCellEdges(cell)!;
       const tileIndex =
-        (cell.height * MAX_TILES_PER_TERRAIN + edge) * MAX_VARIANTS +
+        (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
         randomInt(MAX_VARIANTS - 1);
 
       const sheet = sheets[cell.temperature]!;
 
-      sprite.angle = angle;
-      sprite.texture = sheet.textures[`${tileIndex}`]!;
+      sprite.angle = terrain.angle;
+      sprite.texture = sheet.textures[tileIndex]!;
+
+      if (biome.edge) {
+        sprite.removeChildren();
+        const biomeSprite = new PIXI.Sprite(
+          biomeSeamsSheet.textures[biome.edge]
+        );
+        biomeSprite.anchor.set(0.5, 0.5);
+        biomeSprite.angle = biome.angle - terrain.angle;
+        biomeSprite.cullable = true;
+        sprite.addChild(biomeSprite);
+      }
     }
 
     return spriteCache.get(cellKey)!;
@@ -324,7 +276,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     mapContainer.addChild(currentChunkContainer);
 
     cells.forEach(drawCell);
-  }, 150);
+  }, 100);
 
   const drawChunk = (center: Point, force?: boolean) => {
     const newChunk = {
