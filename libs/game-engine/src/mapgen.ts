@@ -1,19 +1,17 @@
 import {
-  mapRange,
-  isNever,
   type MapCellAngle,
   type MapCell,
   type Nullable,
   type Values,
+  type Point,
+  type Keys,
   isDefined,
-  MapCellEdge,
-  Point,
+  mapRange,
   clamp,
-  Keys,
   dist
 } from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
-import { Noise2D } from 'open-simplex-noise/lib/2d';
+import type { Noise2D } from 'open-simplex-noise/lib/2d';
 
 type Height = Values<typeof HEIGHTS>;
 type Temperature = Values<typeof TEMPERATURES>;

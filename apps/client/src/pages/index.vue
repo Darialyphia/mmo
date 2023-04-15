@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { createGameEngine, type GameEngine } from '@/game-engine';
+import { createGameEngine, type GameEngine } from '@mmo/game-client';
 
 definePage({
   name: 'Home'

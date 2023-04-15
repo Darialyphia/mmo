@@ -9,7 +9,6 @@ import { errorHandler } from './middlewares/errorHandler';
 import { errors } from './utils/errors';
 import { httpLoggerMiddleware } from './middlewares/httpLogger';
 import { createRoute } from './utils/createRoute';
-import { parseLayoutMeta } from './mapgen';
 
 export const createApp = () => {
   const app = express();
@@ -24,14 +23,6 @@ export const createApp = () => {
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser(config.COOKIE_SECRET));
 
-  app.get(
-    '/layout',
-    ...createRoute({
-      async controller() {
-        return parseLayoutMeta();
-      }
-    })
-  );
   app.use(() => {
     throw errors.notFound();
   });

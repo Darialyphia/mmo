@@ -2,7 +2,6 @@ import type {
   AsyncReturnType,
   GameMeta,
   GameStateSnapshotDto,
-  MapLayout,
   Player
 } from '@mmo/shared';
 import * as PIXI from 'pixi.js';

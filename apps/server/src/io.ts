@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import type http from 'http';
 import { handleCORS } from './middlewares/cors';
-import { Directions, createGame } from './game';
+import { Directions, createGame } from '@mmo/game-engine';
 
 let io: Server;
 

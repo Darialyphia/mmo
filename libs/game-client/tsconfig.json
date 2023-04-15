@@ -1,0 +1,22 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.web.json",
+  "include": ["src/**/*.ts", "tsup.config.ts", "env.d.ts"],
+  "exclude": [".git", "node_modules"],
+  "compilerOptions": {
+    "ignoreDeprecations": "5.0",
+    "composite": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "unplugin-icons/types/vue",
+      "unplugin-vue-macros/macros-global",
+      "@intlify/unplugin-vue-i18n/messages",
+      "vitest/globals",
+      "@pixi/layers"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}

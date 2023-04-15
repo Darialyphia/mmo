@@ -1,20 +1,20 @@
 import { randomInt } from 'crypto';
-import { GameMap, createMap } from './mapgen';
+import { type GameMap, createMap } from './mapgen';
 import { EventEmitter } from 'events';
 import { keyBy } from 'lodash-es';
 import {
-  GridItem,
-  MapCell,
-  Player,
-  Point,
-  SpatialHashGrid,
+  type GridItem,
+  type MapCell,
+  type Player,
+  type Point,
+  type SpatialHashGrid,
   addVector,
   clamp,
   createSpatialHashGrid,
   isNever,
   setMagnitude
 } from '@mmo/shared';
-import TypedEmitter from 'typed-emitter';
+import type TypedEmitter from 'typed-emitter';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void;
@@ -141,10 +141,8 @@ export const createGame = () => {
   const createPlayer = (id: string) => {
     const player = {
       gridItem: grid.add({
-        // x: randomInt(map.width),
-        // y: randomInt(map.height),
-        x: 0,
-        y: 0,
+        x: randomInt(map.width),
+        y: randomInt(map.height),
         w: 1,
         h: 1
       }),
