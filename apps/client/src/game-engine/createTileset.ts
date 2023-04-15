@@ -4,7 +4,6 @@ import * as PIXI from 'pixi.js';
 const loadedTextures = new Map<string, Promise<PIXI.Texture>>();
 
 export type CreateTileSetOptions = {
-  id: string;
   path: string;
   dimensions: Size;
   tileSize: number;
@@ -13,8 +12,7 @@ export type CreateTileSetOptions = {
 export const createTileset = async ({
   path,
   dimensions,
-  tileSize,
-  id
+  tileSize
 }: CreateTileSetOptions) => {
   if (!loadedTextures.has(path)) {
     loadedTextures.set(path, PIXI.Assets.load(path) as Promise<PIXI.Texture>);
@@ -26,7 +24,7 @@ export const createTileset = async ({
   const data = {
     frames: Object.fromEntries(
       Array.from({ length: tileCount }, (_, index) => {
-        const textureId = `${id}-${index}`;
+        const textureId = `${index}`;
 
         // avoids console warnings with HMR
         if (import.meta.env.DEV) {

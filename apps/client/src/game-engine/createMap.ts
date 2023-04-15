@@ -6,7 +6,10 @@ import {
   clamp,
   type GameMeta,
   type MapCell,
-  type GameStateSnapshotDto
+  type GameStateSnapshotDto,
+  type MapCellAngle,
+  MapCellEdge,
+  isNever
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { spritePaths } from './sprites';
@@ -17,16 +20,94 @@ import { throttle } from 'lodash-es';
 const MAX_VARIANTS = 4;
 const MAX_TILES_PER_TERRAIN = 6;
 const TERRAINS_COUNT = 4;
+const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
 
 type CreateMapOptions = {
   app: PIXI.Application;
   camera: Camera;
   meta: GameMeta;
 };
-const getCellKey = (cell: MapCell) => `${cell.position.x}:${cell.position.y}`;
+
+const getNeighbors = (
+  { position }: MapCell,
+  map: Map<string, MapCell>,
+  meta: GameMeta
+) => {
+  const isLeftEdge = position.x === 0;
+  const isRightEdge = position.x === meta.width - 1;
+  const isTopEdge = position.y === 0;
+  const isBottomEdge = position.y === meta.height - 1;
+
+  return {
+    top: isTopEdge
+      ? null
+      : map.get(getCellKey({ x: position.x, y: position.y - 1 })),
+    bottom: isBottomEdge
+      ? null
+      : map.get(getCellKey({ x: position.x, y: position.y + 1 })),
+    left: isLeftEdge
+      ? null
+      : map.get(getCellKey({ x: position.x - 1, y: position.y })),
+    right: isRightEdge
+      ? null
+      : map.get(getCellKey({ x: position.x + 1, y: position.y }))
+  };
+};
+
+const countEdges = (edges: [boolean, boolean, boolean, boolean]) =>
+  edges.filter(edge => !!edge).length as Exclude<
+    MapCellEdge,
+    (typeof MapCellEdge)['CORNER']
+  >;
+
+type Edges = [boolean, boolean, boolean, boolean];
+
+const isParallelTwoSides = (edges: Edges) => {
+  const edgesCount = countEdges(edges);
+  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
+
+  return (
+    edgesCount === 2 &&
+    ((isTopEdge && isBottomEdge) || (isLeftEdge && isRightEdge))
+  );
+};
+
+const computeAngleOneSide = ([
+  isTopEdge,
+  ,
+  isLeftEdge,
+  isRightEdge
+]: Edges): MapCellAngle => {
+  if (isLeftEdge) return 0;
+  if (isTopEdge) return 90;
+  if (isRightEdge) return 180;
+  return 270;
+};
+
+const computeAngleTwoSides = (edges: Edges): MapCellAngle => {
+  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
+
+  if (isParallelTwoSides(edges)) return isLeftEdge ? 0 : 90;
+  if (isLeftEdge && isTopEdge) return 0;
+  if (isTopEdge && isRightEdge) return 90;
+  if (isRightEdge && isBottomEdge) return 180;
+
+  return 270;
+};
+
+const computeAngleThreeSides = ([
+  isTopEdge,
+  isBottomEdge,
+  ,
+  isRightEdge
+]: Edges): MapCellAngle => {
+  if (!isTopEdge) return 0;
+  if (!isRightEdge) return 90;
+  if (!isBottomEdge) return 180;
+  return 270;
+};
 
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
-  const variantsCache = new Map<string, number>();
   const spriteCache = new Map<string, PIXI.Sprite>();
 
   const tilesetBaseOptions = {
@@ -36,28 +117,19 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     },
     tileSize: CELL_SIZE
   };
-  const tilesetOptions = [
-    {
-      ...tilesetBaseOptions,
-      path: spritePaths.tileSets.snow,
-      id: 'snowTileset'
-    },
-    {
-      ...tilesetBaseOptions,
-      path: spritePaths.tileSets.base,
-      id: 'baseTileset'
-    },
-    {
-      ...tilesetBaseOptions,
-      path: spritePaths.tileSets.desert,
-      id: 'desetTileset'
-    }
-  ];
 
-  const sheets = await Promise.all(tilesetOptions.map(createTileset));
+  const sheets = await Promise.all(
+    Object.values(spritePaths.tileSets).map(path =>
+      createTileset({
+        ...tilesetBaseOptions,
+        path
+      })
+    )
+  );
 
   const cells: MapCell[] = [];
-  const cellKeys = new Map<string, number>();
+  const cellsByKey = new Map<string, MapCell>();
+  const undecidedEdges = new Map<string, true>();
 
   const mapContainer = new PIXI.Container();
 
@@ -99,6 +171,47 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     };
   };
 
+  const computeCellEdges = (cell: MapCell) => {
+    const neighbors = getNeighbors(cell, cellsByKey, meta);
+    if (
+      neighbors.top === undefined ||
+      neighbors.bottom === undefined ||
+      neighbors.left === undefined ||
+      neighbors.right === undefined
+    ) {
+      undecidedEdges.set(getCellKey(cell.position), true);
+    } else {
+      undecidedEdges.delete(getCellKey(cell.position));
+    }
+
+    const edges: [boolean, boolean, boolean, boolean] = [
+      isDefined(neighbors.top) && neighbors.top.height < cell.height,
+      isDefined(neighbors.bottom) && neighbors.bottom.height < cell.height,
+      isDefined(neighbors.left) && neighbors.left.height < cell.height,
+      isDefined(neighbors.right) && neighbors.right.height < cell.height
+    ];
+
+    const edgesCount = countEdges(edges);
+
+    switch (edgesCount) {
+      case MapCellEdge.NONE:
+        return { edge: edgesCount, angle: 0 };
+      case MapCellEdge.ONE_SIDE:
+        return { edge: edgesCount, angle: computeAngleOneSide(edges) };
+      case MapCellEdge.TWO_SIDES:
+        return {
+          edge: isParallelTwoSides(edges) ? edgesCount : MapCellEdge.CORNER,
+          angle: computeAngleTwoSides(edges)
+        };
+      case MapCellEdge.THREE_SIDES:
+        return { edge: edgesCount, angle: computeAngleThreeSides(edges) };
+      case MapCellEdge.ALL_SIDES:
+        return { edge: edgesCount, angle: 0 };
+      default:
+        isNever(edgesCount);
+    }
+  };
+
   const checkChunkEdges = () => {
     const cameraPosition = getCameraPosition();
 
@@ -117,24 +230,21 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   };
 
   const getOrCreateCellSprite = (cell: MapCell) => {
-    const cellKey = getCellKey(cell);
+    const cellKey = getCellKey(cell.position);
 
     if (!spriteCache.has(cellKey)) {
-      const variant = variantsCache.get(cellKey) ?? randomInt(MAX_VARIANTS - 1);
-      variantsCache.set(cellKey, variant);
-
+      const { edge, angle } = computeCellEdges(cell)!;
       const tileIndex =
-        (cell.height * MAX_TILES_PER_TERRAIN + cell.edge) * MAX_VARIANTS +
-        variant;
+        (cell.height * MAX_TILES_PER_TERRAIN + edge) * MAX_VARIANTS +
+        randomInt(MAX_VARIANTS - 1);
 
       const sheet = sheets[cell.temperature]!;
-      const { id } = tilesetOptions[cell.temperature]!;
 
-      const sprite = new PIXI.Sprite(sheet.textures[`${id}-${tileIndex}`]);
+      const sprite = new PIXI.Sprite(sheet.textures[`${tileIndex}`]);
       sprite.anchor.set(0.5, 0.5);
-      sprite.angle = cell.angle;
+      sprite.angle = angle;
       sprite.cullable = true;
-      sprite.alpha = cellKeys.get(cellKey)!;
+      sprite.alpha = 0;
 
       const increaseAlpha = () => {
         sprite.alpha += 0.05;
@@ -145,6 +255,17 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       app.ticker.add(increaseAlpha);
 
       spriteCache.set(cellKey, sprite);
+    } else if (undecidedEdges.has(cellKey)) {
+      const sprite = spriteCache.get(cellKey)!;
+      const { edge, angle } = computeCellEdges(cell)!;
+      const tileIndex =
+        (cell.height * MAX_TILES_PER_TERRAIN + edge) * MAX_VARIANTS +
+        randomInt(MAX_VARIANTS - 1);
+
+      const sheet = sheets[cell.temperature]!;
+
+      sprite.angle = angle;
+      sprite.texture = sheet.textures[`${tileIndex}`]!;
     }
 
     return spriteCache.get(cellKey)!;
@@ -179,7 +300,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     mapContainer.addChild(currentChunkContainer);
 
     cells.forEach(drawCell);
-  }, 10);
+  }, 150);
 
   const drawChunk = (center: Point, force?: boolean) => {
     const newChunk = {
@@ -208,9 +329,9 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       const count = cells.length;
 
       snapshot.fieldOfView.forEach(cell => {
-        const key = getCellKey(cell);
-        if (cellKeys.has(key)) return;
-        cellKeys.set(key, 0);
+        const key = getCellKey(cell.position);
+        if (cellsByKey.has(key)) return;
+        cellsByKey.set(key, cell);
         cells.push(cell);
       });
 

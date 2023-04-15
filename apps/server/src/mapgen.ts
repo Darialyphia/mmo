@@ -210,7 +210,7 @@ const generateHeightChunk = (startsAt: Point, noise: Noise2D) => {
 const generateTemperatureChunk = (startsAt: Point, noise: Noise2D) => {
   return makeNoiseRectangle((x, y) => noise(x, y), {
     startsAt,
-    frequency: 0.04,
+    frequency: 0.02,
     octaves: 1,
     amplitude: 2,
     persistence: 0.5,
@@ -235,7 +235,6 @@ const generateChunk = (startsAt: Point, baseSeed: number) => {
     return {
       height,
       temperature,
-      ...computeEdges(index, heightChunk),
       position: {
         x: startsAt.x + (index % CHUNK_SIZE),
         y: startsAt.y + Math.floor(index / CHUNK_SIZE)
@@ -270,94 +269,6 @@ const getNeighbors = (index: number, map: Height[]): CellNeighbors => {
   };
 };
 
-const countEdges = (edges: [boolean, boolean, boolean, boolean]) =>
-  edges.filter(edge => !!edge).length as Exclude<
-    MapCellEdge,
-    (typeof MapCellEdge)['CORNER']
-  >;
-
-type Edges = [boolean, boolean, boolean, boolean];
-
-const isParallelTwoSides = (edges: Edges) => {
-  const edgesCount = countEdges(edges);
-  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
-
-  return (
-    edgesCount === 2 &&
-    ((isTopEdge && isBottomEdge) || (isLeftEdge && isRightEdge))
-  );
-};
-
-const computeAngleOneSide = ([
-  isTopEdge,
-  ,
-  isLeftEdge,
-  isRightEdge
-]: Edges): MapCellAngle => {
-  if (isLeftEdge) return 0;
-  if (isTopEdge) return 90;
-  if (isRightEdge) return 180;
-  return 270;
-};
-
-const computeAngleTwoSides = (edges: Edges): MapCellAngle => {
-  const [isTopEdge, isBottomEdge, isLeftEdge, isRightEdge] = edges;
-
-  if (isParallelTwoSides(edges)) return isLeftEdge ? 0 : 90;
-  if (isLeftEdge && isTopEdge) return 0;
-  if (isTopEdge && isRightEdge) return 90;
-  if (isRightEdge && isBottomEdge) return 180;
-
-  return 270;
-};
-
-const computeAngleThreeSides = ([
-  isTopEdge,
-  isBottomEdge,
-  ,
-  isRightEdge
-]: Edges): MapCellAngle => {
-  if (!isTopEdge) return 0;
-  if (!isRightEdge) return 90;
-  if (!isBottomEdge) return 180;
-  return 270;
-};
-
-const computeEdges = (
-  index: number,
-  map: Height[]
-  // @ts-ignore ts dumb
-): Pick<MapCell, 'edge' | 'angle'> => {
-  const cell = map[index];
-  const neighbors = getNeighbors(index, map);
-
-  const edges: [boolean, boolean, boolean, boolean] = [
-    isDefined(neighbors.top) && neighbors.top < cell,
-    isDefined(neighbors.bottom) && neighbors.bottom < cell,
-    isDefined(neighbors.left) && neighbors.left < cell,
-    isDefined(neighbors.right) && neighbors.right < cell
-  ];
-  const edgesCount = countEdges(edges);
-
-  switch (edgesCount) {
-    case MapCellEdge.NONE:
-      return { edge: edgesCount, angle: 0 };
-    case MapCellEdge.ONE_SIDE:
-      return { edge: edgesCount, angle: computeAngleOneSide(edges) };
-    case MapCellEdge.TWO_SIDES:
-      return {
-        edge: isParallelTwoSides(edges) ? edgesCount : MapCellEdge.CORNER,
-        angle: computeAngleTwoSides(edges)
-      };
-    case MapCellEdge.THREE_SIDES:
-      return { edge: edgesCount, angle: computeAngleThreeSides(edges) };
-    case MapCellEdge.ALL_SIDES:
-      return { edge: edgesCount, angle: 0 };
-    default:
-      isNever(edgesCount);
-  }
-};
-
 export const createMap = () => {
   const seed = 12345;
 
@@ -376,6 +287,8 @@ export const createMap = () => {
     width: WIDTH,
     height: HEIGHT,
     getFieldOfView({ x, y }: Point, fov: number) {
+      x = Math.round(x);
+      y = Math.round(y);
       const min = {
         x: clamp(x - fov, 0, WIDTH - 1),
         y: clamp(y - fov, 0, HEIGHT - 1)

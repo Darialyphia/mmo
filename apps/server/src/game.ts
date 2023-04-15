@@ -47,7 +47,7 @@ type OtherEvent = {
 type GameEvent = MoveEvent | OtherEvent;
 
 const TICK_RATE = 15;
-const PLAYER_SPEED = 1;
+const PLAYER_SPEED = 0.8;
 const PLAYER_FOV = 8;
 
 const createTaskQueue = <TTask extends () => void>() => {

@@ -6,8 +6,6 @@ export type MapCellAngle = 0 | 90 | 180 | 270;
 export type MapCell = {
   height: number;
   temperature: number;
-  edge: MapCellEdge;
-  angle: MapCellAngle;
   position: Point;
 };
 
