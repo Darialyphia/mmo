@@ -1,20 +1,18 @@
 import { randomInt } from 'crypto';
-import { type GameMap, createMap } from './mapgen';
+import { createMap } from './mapgen';
 import { EventEmitter } from 'events';
 import { keyBy } from 'lodash-es';
 import {
   type GridItem,
   type MapCell,
   type Player,
-  type Point,
-  type SpatialHashGrid,
-  addVector,
-  clamp,
   createSpatialHashGrid,
-  isNever,
-  setMagnitude
+  isNever
 } from '@mmo/shared';
 import type TypedEmitter from 'typed-emitter';
+import { createMovementSystem } from './systems/movementSystem';
+import { PLAYER_FOV, TICK_RATE } from './constants';
+import { createTaskQueue } from './taskQueue';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void;
@@ -48,62 +46,6 @@ type OtherEvent = {
 };
 
 type GameEvent = MoveEvent | OtherEvent;
-
-const TICK_RATE = 15;
-const PLAYER_SPEED = 0.8;
-const PLAYER_FOV = 10;
-
-const createTaskQueue = <TTask extends () => void>() => {
-  const tasks: TTask[] = [];
-  return {
-    schedule(task: TTask) {
-      tasks.push(task);
-    },
-
-    process() {
-      let task = tasks.shift();
-      while (task) {
-        task();
-
-        task = tasks.shift();
-      }
-    }
-  };
-};
-
-export function computeVelocity(directions: Directions, speed: number): Point {
-  const vel = { x: 0, y: 0 };
-  if (directions.right) {
-    vel.x += 1;
-  }
-  if (directions.left) {
-    vel.x -= 1;
-  }
-  if (directions.up) {
-    vel.y -= 1;
-  }
-  if (directions.down) {
-    vel.y += 1;
-  }
-  return setMagnitude(vel, speed);
-}
-
-const createMovementSystem = (map: GameMap, grid: SpatialHashGrid) => {
-  return (players: GamePlayer[]) => {
-    players.forEach(player => {
-      const velocity = computeVelocity(player.directions, PLAYER_SPEED);
-      const newPos = addVector(
-        { x: player.gridItem.x, y: player.gridItem.y },
-        velocity
-      );
-
-      const cell = map.getCellAt(newPos);
-      if (cell.height === 0) return;
-      player.gridItem.x = clamp(newPos.x, 0, grid.dimensions.w - 1);
-      player.gridItem.y = clamp(newPos.y, 0, grid.dimensions.h - 1);
-    });
-  };
-};
 
 export const createGame = () => {
   const map = createMap();
@@ -139,10 +81,23 @@ export const createGame = () => {
   };
 
   const createPlayer = (id: string) => {
+    let spawnPosition = {
+      x: randomInt(map.width),
+      y: randomInt(map.height)
+    };
+    let cell = map.getCellAt(spawnPosition);
+
+    while (cell.height === 0) {
+      spawnPosition = {
+        x: randomInt(map.width),
+        y: randomInt(map.height)
+      };
+      cell = map.getCellAt(spawnPosition);
+    }
+
     const player = {
       gridItem: grid.add({
-        x: randomInt(map.width),
-        y: randomInt(map.height),
+        ...spawnPosition,
         w: 1,
         h: 1
       }),

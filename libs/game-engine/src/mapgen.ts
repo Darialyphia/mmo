@@ -12,6 +12,7 @@ import {
 } from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
 import type { Noise2D } from 'open-simplex-noise/lib/2d';
+import { CHUNK_SIZE, HEIGHT, WIDTH } from './constants';
 
 type Height = Values<typeof HEIGHTS>;
 type Temperature = Values<typeof TEMPERATURES>;
@@ -23,9 +24,6 @@ type CellNeighbors = {
 };
 type Noise2Fn = (x: number, y: number) => number;
 
-const WIDTH = 500;
-const HEIGHT = 500;
-const CHUNK_SIZE = 25;
 // const SEED = 12345;
 
 const HEIGHTS = {
