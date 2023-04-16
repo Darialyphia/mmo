@@ -2,10 +2,11 @@ import type {
   AsyncReturnType,
   GameMeta,
   GameStateSnapshotDto,
+  MapCell,
   Player
 } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
-import { createMap } from './createMap';
+import { createMap, loadTilesets } from './createMap';
 import { createEntity, playerSpritesById } from './createEntity';
 import { coordsToPixels, enablePIXIDevtools, interpolateEntity } from './utils';
 import { createCamera } from './createCamera';
@@ -20,12 +21,14 @@ export type GameState = {
   players: Player[];
   playersById: Record<string, Player>;
   timestamp: number;
+  fieldOfView: MapCell[];
 };
 
 const createGameState = (): GameState => {
   return {
     players: [],
     playersById: {},
+    fieldOfView: [],
     timestamp: performance.now()
   };
 };
@@ -43,6 +46,8 @@ export const createGameEngine = async ({
   meta,
   socket
 }: CreateGameEngineOptions) => {
+  await loadTilesets();
+
   const { width, height } = container.getBoundingClientRect();
 
   const app = new PIXI.Application({
@@ -119,9 +124,10 @@ export const createGameEngine = async ({
       state = {
         players: newState.players,
         playersById: Object.fromEntries(newState.players.map(p => [p.id, p])),
+        fieldOfView: newState.fieldOfView,
         timestamp: performance.now()
       };
-      map.onStateUpdate(newState);
+      map.onStateUpdate(state);
     },
     cleanup() {
       camera.cleanup();

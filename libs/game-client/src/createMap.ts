@@ -6,19 +6,56 @@ import {
   clamp,
   type GameMeta,
   type MapCell,
-  type GameStateSnapshotDto
+  type GameStateSnapshotDto,
+  Keys
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
-import { spritePaths } from './sprites';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
-import { throttle } from 'lodash-es';
+import { isNumber, throttle } from 'lodash-es';
 import { getEdgeInfos, isHeightEdge, isBiomeEdge } from './utils';
+import { Tilesets, tilesets } from './assets/tilesets';
+import type { GameState } from '.';
 
 const MAX_VARIANTS = 4;
 const MAX_TILES_PER_TERRAIN = 6;
 const TERRAINS_COUNT = 4;
+const BIOME_TO_TILESET: Keys<Tilesets>[] = ['snow', 'base', 'desert'];
+
 const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
+
+const tilesetMap = new Map<string, PIXI.Spritesheet>();
+
+export const loadTilesets = async () => {
+  await Promise.all(
+    Object.entries(tilesets).map(async ([name, { url, asepriteMeta }]) => {
+      const tileset = await createTileset({
+        asepriteMeta,
+        url,
+        name
+      });
+
+      tilesetMap.set(name, tileset);
+    })
+  );
+};
+
+export const getTileset = (id: string | number) => {
+  if (isNumber(id)) {
+    const mapping = BIOME_TO_TILESET[id];
+    if (!mapping) {
+      throw new Error(`Unknown biome: ${id}`);
+    }
+    id = mapping;
+  }
+  const tileset = tilesetMap.get(id);
+
+  if (!tileset) {
+    throw new Error(`Unknown tileset: ${id}`);
+  }
+
+  return tileset;
+};
 
 export type CreateMapOptions = {
   app: PIXI.Application;
@@ -62,24 +99,6 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     },
     tileSize: CELL_SIZE
   };
-
-  const sheets = await Promise.all(
-    Object.values(spritePaths.tileSets)
-      .map(path =>
-        createTileset({
-          ...tilesetBaseOptions,
-          path
-        })
-      )
-      .concat(
-        createTileset({
-          dimensions: { w: CELL_SIZE, h: 6 * CELL_SIZE },
-          tileSize: CELL_SIZE,
-          path: spritePaths.utils.biomeSeams
-        })
-      )
-  );
-  const biomeSeamsSheet = sheets[3]!;
 
   const cells: MapCell[] = [];
   const cellsByKey = new Map<string, MapCell>();
@@ -125,6 +144,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     };
   };
 
+  type EdgeResult = ReturnType<typeof computeCellEdges>;
   const computeCellEdges = (cell: MapCell) => {
     const { top, bottom, left, right } = getNeighbors(cell, cellsByKey, meta);
     if (
@@ -170,19 +190,37 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       drawChunk(cameraPosition);
     }
   };
+  const addBiomeSeam = (
+    sprite: PIXI.Sprite,
+    { biome, terrain }: EdgeResult
+  ) => {
+    const biomeSeamsSheet = getTileset('biomeSeams');
+    const biomeSprite = new PIXI.Sprite(
+      biomeSeamsSheet.textures[`biomeSeams-${biome.edge}`]
+    );
+    biomeSprite.anchor.set(0.5, 0.5);
+    biomeSprite.angle = biome.angle - terrain.angle;
+    biomeSprite.cullable = true;
+    sprite.addChild(biomeSprite);
+  };
+
+  const getCellInfos = (cell: MapCell) => {
+    const { terrain, biome } = computeCellEdges(cell)!;
+    const tileIndex =
+      (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
+      randomInt(MAX_VARIANTS - 1);
+    const sheet = getTileset(cell.temperature);
+    const textureId = `${BIOME_TO_TILESET[cell.temperature]}-${tileIndex}`;
+
+    return { sheet, terrain, biome, tileIndex, textureId };
+  };
 
   const getOrCreateCellSprite = (cell: MapCell) => {
     const cellKey = getCellKey(cell.position);
 
     if (!spriteCache.has(cellKey)) {
-      const { terrain, biome } = computeCellEdges(cell)!;
-      const tileIndex =
-        (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
-        randomInt(MAX_VARIANTS - 1);
-
-      const sheet = sheets[cell.temperature]!;
-
-      const sprite = new PIXI.Sprite(sheet.textures[tileIndex]);
+      const { terrain, biome, sheet, textureId } = getCellInfos(cell);
+      const sprite = new PIXI.Sprite(sheet.textures[textureId]);
       sprite.anchor.set(0.5, 0.5);
       sprite.angle = terrain.angle;
       sprite.cullable = true;
@@ -197,37 +235,20 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       app.ticker.add(increaseAlpha);
 
       if (biome.edge) {
-        const biomeSprite = new PIXI.Sprite(
-          biomeSeamsSheet.textures[biome.edge]
-        );
-        biomeSprite.anchor.set(0.5, 0.5);
-        biomeSprite.angle = biome.angle - terrain.angle;
-        biomeSprite.cullable = true;
-        sprite.addChild(biomeSprite);
+        addBiomeSeam(sprite, { biome, terrain });
       }
 
       spriteCache.set(cellKey, sprite);
     } else if (undecidedEdges.has(cellKey)) {
       const sprite = spriteCache.get(cellKey)!;
-      const { terrain, biome } = computeCellEdges(cell)!;
-      const tileIndex =
-        (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
-        randomInt(MAX_VARIANTS - 1);
-
-      const sheet = sheets[cell.temperature]!;
+      const { terrain, biome, sheet, textureId } = getCellInfos(cell);
 
       sprite.angle = terrain.angle;
-      sprite.texture = sheet.textures[tileIndex]!;
+      sprite.texture = sheet.textures[textureId]!;
 
       if (biome.edge) {
         sprite.removeChildren();
-        const biomeSprite = new PIXI.Sprite(
-          biomeSeamsSheet.textures[biome.edge]
-        );
-        biomeSprite.anchor.set(0.5, 0.5);
-        biomeSprite.angle = biome.angle - terrain.angle;
-        biomeSprite.cullable = true;
-        sprite.addChild(biomeSprite);
+        addBiomeSeam(sprite, { biome, terrain });
       }
     }
 
@@ -288,7 +309,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     cleanup() {
       console.log('map cleanup');
     },
-    onStateUpdate(snapshot: GameStateSnapshotDto) {
+    onStateUpdate(snapshot: GameState) {
       const count = cells.length;
 
       snapshot.fieldOfView.forEach(cell => {

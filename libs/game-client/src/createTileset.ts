@@ -1,67 +1,63 @@
 import type { Size } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
-
-const loadedTextures = new Map<string, Promise<PIXI.Texture>>();
+import { AsepriteSheet } from './aseprite';
+import { CELL_SIZE } from './constants';
 
 export type CreateTileSetOptions = {
-  path: string;
-  dimensions: Size;
-  tileSize: number;
+  asepriteMeta: AsepriteSheet;
+  name: string;
+  url: string;
 };
 
 export const createTileset = async ({
-  path,
-  dimensions,
-  tileSize
-}: CreateTileSetOptions) => {
-  if (!loadedTextures.has(path)) {
-    loadedTextures.set(path, PIXI.Assets.load(path) as Promise<PIXI.Texture>);
-  }
-
-  const texture = (await loadedTextures.get(path)) as PIXI.Texture;
-  const tileCount = (dimensions.w / tileSize) * (dimensions.h / tileSize);
+  asepriteMeta,
+  name,
+  url
+}: CreateTileSetOptions): Promise<PIXI.Spritesheet> => {
+  const columns = asepriteMeta.meta.size.w / CELL_SIZE;
+  const rows = asepriteMeta.meta.size.h / CELL_SIZE;
+  const tileCount = columns * rows;
 
   const data = {
     frames: Object.fromEntries(
       Array.from({ length: tileCount }, (_, index) => {
-        const textureId = `${index}`;
+        const textureId = `${name}-${index}`;
 
         // avoids console warnings with HMR
         if (import.meta.env.DEV) {
           PIXI.Texture.removeFromCache(textureId);
         }
 
-        const columns = dimensions.w / tileSize;
-
         return [
           textureId,
           {
             frame: {
-              x: (index % columns) * tileSize,
-              y: Math.floor(index / columns) * tileSize,
-              w: tileSize,
-              h: tileSize
+              x: (index % columns) * CELL_SIZE,
+              y: Math.floor(index / columns) * CELL_SIZE,
+              w: CELL_SIZE,
+              h: CELL_SIZE
             },
-            sourceSize: { w: tileSize, h: tileSize },
+            sourceSize: { w: CELL_SIZE, h: CELL_SIZE },
             spriteSourceSize: {
               x: 0,
               y: 0,
-              w: tileSize,
-              h: tileSize
+              w: CELL_SIZE,
+              h: CELL_SIZE
             }
           }
         ];
       })
     ),
     meta: {
-      image: path,
-      size: dimensions,
+      image: url,
+      size: asepriteMeta.meta.size,
       scale: '1'
     }
   };
 
+  const texture = await PIXI.Assets.load(url);
   const spritesheet = new PIXI.Spritesheet(texture, data);
-  await spritesheet.parse();
 
+  await spritesheet.parse();
   return spritesheet;
 };
