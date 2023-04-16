@@ -36,7 +36,7 @@ export const createPlayer = (
       h: 1
     }),
     id,
-    character: 'adventurer',
+    character: Math.random() > 0.5 ? 'adventurer' : 'enchantress',
     directions: { up: false, down: false, left: false, right: false }
   };
 };
