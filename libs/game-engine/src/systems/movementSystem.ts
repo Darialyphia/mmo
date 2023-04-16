@@ -39,6 +39,7 @@ export const createMovementSystem = (map: GameMap, grid: SpatialHashGrid) => {
       if (cell.height === 0) return;
       player.gridItem.x = clamp(newPos.x, 0, grid.dimensions.w - 1);
       player.gridItem.y = clamp(newPos.y, 0, grid.dimensions.h - 1);
+      grid.update(player.gridItem);
     });
   };
 };

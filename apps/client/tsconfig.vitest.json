@@ -12,6 +12,7 @@
     "test/**/*"
   ],
   "compilerOptions": {
+    "ignoreDeprecations": "5.0",
     "skipLibCheck": true,
     "composite": true,
     "lib": [],

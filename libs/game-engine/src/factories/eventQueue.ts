@@ -1,54 +1,44 @@
 import {
   createQueue,
-  type AnyObject,
-  type Values,
   isNever,
-  type SpatialHashGrid
+  type SpatialHashGrid,
+  GridItem
 } from '@mmo/shared';
-import { keyBy } from 'lodash-es';
-import type { Directions, GamePlayer } from '../game';
-import { createPlayer } from './playerFactory';
+import type { GamePlayer } from '../game';
 import type { GameMap } from '../mapgen';
+import {
+  PlayerJoinedEvent,
+  onPlayerJoined
+} from '../handlers/playerJoined.handler';
+import {
+  PlayerMoveEvent,
+  onPlayerMovement
+} from '../handlers/playerMovement.handler';
+import { PlayerLeftEvent, onPlayerLeft } from '../handlers/playerLeft.handler';
 
-type MoveEvent = {
-  type: 'move';
-  payload: { playerId: string; directions: Directions };
-};
+export type GameEvent = PlayerMoveEvent | PlayerJoinedEvent | PlayerLeftEvent;
 
-type PlayerJoinedEvent = {
-  type: 'player joined';
-  payload: { playerId: string };
-};
-
-type PlayerLeftEvent = {
-  type: 'player left';
-  payload: { playerId: string };
-};
-
-export type GameEvent = MoveEvent | PlayerJoinedEvent | PlayerLeftEvent;
-
-export type EventQueueOptions = {
+export type EventQueueDependencies = {
   players: GamePlayer[];
   map: GameMap;
   grid: SpatialHashGrid;
+  playerLookup: Map<string, GamePlayer>;
+  gridLookup: WeakMap<GridItem, GamePlayer>;
 };
 
-export const createEventQueue = ({ players, map, grid }: EventQueueOptions) => {
+export const createEventQueue = (deps: EventQueueDependencies) => {
   return createQueue((event: GameEvent) => {
     const type = event.type;
 
     switch (type) {
       case 'move':
-        const player = keyBy(players, 'id')[event.payload.playerId];
-        Object.assign(player.directions, event.payload.directions);
+        onPlayerMovement(event.payload, deps);
         break;
       case 'player joined':
-        players.push(createPlayer(event.payload.playerId, { map, grid }));
+        onPlayerJoined(event.payload, deps);
         break;
       case 'player left':
-        const idx = players.findIndex(p => p.id === event.payload.playerId);
-        if (idx < 0) return;
-        players.splice(idx, 1);
+        onPlayerLeft(event.payload, deps);
         break;
       default:
         isNever(type);

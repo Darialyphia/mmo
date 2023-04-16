@@ -42,8 +42,8 @@ export const createIO = (server: http.Server) => {
     const sockets = await io.fetchSockets();
     sockets.forEach(socket => {
       socket.emit('update', {
-        players: snapshot.players,
-        fieldOfView: snapshot.fieldOfView[socket.id]
+        entities: snapshot.fieldOfView[socket.id].entities,
+        fieldOfView: snapshot.fieldOfView[socket.id].cells
       });
     });
   });

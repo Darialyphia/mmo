@@ -33,23 +33,19 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
         x: lerp(1, [container.pivot.x, x]),
         y: lerp(1, [container.pivot.y, y])
       };
+      const halfScreenWidth = app.screen.width / 2 / container.scale.x;
+      const halfScreenHeight = app.screen.height / 2 / container.scale.y;
 
       container.pivot.set(
         clamp(
           newPivot.x,
-          app.screen.width / 2 / container.scale.x - CELL_SIZE / 2,
-          (app.stage.width,
-          meta.width * CELL_SIZE * container.scale.x - app.screen.width / 2) /
-            container.scale.x -
-            CELL_SIZE / 2
+          halfScreenWidth - CELL_SIZE / 2,
+          meta.width * CELL_SIZE - halfScreenWidth - CELL_SIZE / 2
         ),
         clamp(
           newPivot.y,
-          app.screen.height / 2 / container.scale.y - CELL_SIZE / 2,
-          (app.stage.width,
-          meta.height * CELL_SIZE * container.scale.y - app.screen.height / 2) /
-            container.scale.y -
-            CELL_SIZE / 2
+          halfScreenHeight - CELL_SIZE / 2,
+          meta.height * CELL_SIZE - halfScreenHeight - CELL_SIZE / 2
         )
       );
 

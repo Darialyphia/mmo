@@ -1,6 +1,6 @@
 import type { Point } from '../types';
 
-export type Player = {
+export type Entity = {
   position: Point;
   character: string;
   id: string;

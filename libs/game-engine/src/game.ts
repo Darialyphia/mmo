@@ -4,7 +4,7 @@ import { keyBy } from 'lodash-es';
 import {
   type GridItem,
   type MapCell,
-  type Player,
+  type Entity,
   createSpatialHashGrid,
   isNever,
   type Nullable
@@ -12,21 +12,19 @@ import {
 import type TypedEmitter from 'typed-emitter';
 import { createMovementSystem } from './systems/movementSystem';
 import { PLAYER_FOV, TICK_RATE } from './constants';
-import { createPlayer } from './factories/playerFactory';
 import { createEventQueue, type GameEvent } from './factories/eventQueue';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void | Promise<void>;
 };
 
-export type GamePlayer = Omit<Player, 'position'> & {
+export type GamePlayer = Omit<Entity, 'position'> & {
   directions: Directions;
   gridItem: GridItem;
 };
 
 export type GameStateSnapshot = {
-  players: Player[];
-  fieldOfView: Record<string, MapCell[]>;
+  fieldOfView: Record<string, { cells: MapCell[]; entities: Entity[] }>;
 };
 
 export type Directions = {
@@ -39,6 +37,7 @@ export type Directions = {
 export const createGame = () => {
   const map = createMap();
   const players: GamePlayer[] = [];
+  const playerLookup = new Map<string, GamePlayer>();
   const grid = createSpatialHashGrid({
     dimensions: { w: map.width, h: map.height },
     bounds: {
@@ -46,26 +45,41 @@ export const createGame = () => {
       end: { x: map.width, y: map.height }
     }
   });
+  const gridLookup = new WeakMap<GridItem, GamePlayer>();
   const emitter = new EventEmitter() as TypedEmitter<GameEvents>;
-  const queue = createEventQueue({ map, grid, players });
+  const queue = createEventQueue({
+    map,
+    grid,
+    players,
+    playerLookup,
+    gridLookup
+  });
 
   const movementSystem = createMovementSystem(map, grid);
 
-  const getSnapshot = () => {
-    const playerDtos: GameStateSnapshot['players'] = [];
-    const fov: GameStateSnapshot['fieldOfView'] = {};
+  const getSnapshot = (): GameStateSnapshot => {
+    const fieldOfView = Object.fromEntries(
+      players.map(player => {
+        const entities = grid
+          .findNearbyRadius(
+            { x: player.gridItem.x, y: player.gridItem.y },
+            PLAYER_FOV
+          )
+          .map(gridItem => {
+            const player = gridLookup.get(gridItem)!;
+            return {
+              id: player.id,
+              character: player.character,
+              position: { x: player.gridItem.x, y: player.gridItem.y }
+            };
+          });
+        const cells = map.getFieldOfView(player.gridItem, PLAYER_FOV);
 
-    players.forEach(player => {
-      playerDtos.push({
-        id: player.id,
-        character: player.character,
-        position: { x: player.gridItem.x, y: player.gridItem.y }
-      });
+        return [player.id, { entities, cells }];
+      })
+    );
 
-      fov[player.id] = map.getFieldOfView(player.gridItem, PLAYER_FOV);
-    });
-
-    return { players: playerDtos, fieldOfView: fov };
+    return { fieldOfView };
   };
 
   let interval: Nullable<ReturnType<typeof setInterval>>;

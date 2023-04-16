@@ -3,32 +3,32 @@ import type {
   GameMeta,
   GameStateSnapshotDto,
   MapCell,
-  Player
+  Entity
 } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
 import { createMap, loadTilesets } from './createMap';
-import { createEntity, playerSpritesById } from './createEntity';
-import { coordsToPixels, enablePIXIDevtools, interpolateEntity } from './utils';
+import { enablePIXIDevtools } from './utils';
 import { createCamera } from './createCamera';
 import { Stage } from '@pixi/layers';
 import type { Socket } from 'socket.io-client';
 import { createControls } from './createControls';
 import { loadCharactersBundle } from './createAnimatedSprite';
+import { createEntityManager, getOrCreateSprite } from './createEntityManager';
 
 PIXI.Container.defaultSortableChildren = true;
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
 
 export type GameState = {
-  players: Player[];
-  playersById: Record<string, Player>;
+  entities: Entity[];
+  entitiesById: Record<string, Entity>;
   timestamp: number;
   fieldOfView: MapCell[];
 };
 
 const createGameState = (): GameState => {
   return {
-    players: [],
-    playersById: {},
+    entities: [],
+    entitiesById: {},
     fieldOfView: [],
     timestamp: performance.now()
   };
@@ -66,6 +66,7 @@ export const createGameEngine = async ({
 
   const camera = createCamera({ app, meta });
   const map = await createMap({ app, camera, meta });
+  const entityManager = createEntityManager({ app, camera });
   const controls = createControls();
   controls.on('move', directions => {
     socket.emit('move', directions);
@@ -74,61 +75,33 @@ export const createGameEngine = async ({
   app.stage.addChild(camera.container);
 
   let state = createGameState();
-  let prevState = createGameState();
-
-  const interpolateEntities = () => {
-    const now = performance.now();
-    state.players.forEach(async player => {
-      if (!playerSpritesById[player.id]) {
-        const entity = await createEntity(player);
-        camera.container.addChild(entity);
-      }
-      const sprite = playerSpritesById[player.id];
-
-      const oldPlayer = prevState.playersById[player.id];
-
-      const position = oldPlayer
-        ? interpolateEntity(
-            {
-              value: player.position,
-              timestamp: state.timestamp
-            },
-            { value: oldPlayer.position, timestamp: prevState.timestamp },
-            { now }
-          )
-        : player.position;
-
-      const toPixels = coordsToPixels(position);
-      sprite!.position.set(toPixels.x, toPixels.y);
-    });
-  };
 
   const centerCameraOnPlayer = () => {
-    const player = state.playersById[sessionId];
+    const player = state.entitiesById[sessionId];
     if (!player) return;
 
-    const sprite = playerSpritesById[player.id];
+    const sprite = getOrCreateSprite(player);
     if (!sprite) return;
 
     camera.update(sprite.position);
   };
 
   app.ticker.add(() => {
-    interpolateEntities();
     centerCameraOnPlayer();
   });
 
   return {
     canvas: app.view,
     updateState(newState: GameStateSnapshotDto) {
-      prevState = state;
+      const prevState = state;
       state = {
-        players: newState.players,
-        playersById: Object.fromEntries(newState.players.map(p => [p.id, p])),
+        entities: newState.entities,
+        entitiesById: Object.fromEntries(newState.entities.map(p => [p.id, p])),
         fieldOfView: newState.fieldOfView,
         timestamp: performance.now()
       };
       map.onStateUpdate(state);
+      entityManager.onStateUpdate(state, prevState);
     },
     cleanup() {
       camera.cleanup();

@@ -1,10 +1,11 @@
-import { randomInt, type SpatialHashGrid } from '@mmo/shared';
+import { GridItem, randomInt, type SpatialHashGrid } from '@mmo/shared';
 import type { GameMap } from '../mapgen';
 import { GamePlayer } from '../game';
+import { EventQueueDependencies } from '../factories/eventQueue';
 
-type CreatePlayerOptions = {
-  map: GameMap;
-  grid: SpatialHashGrid;
+export type PlayerJoinedEvent = {
+  type: 'player joined';
+  payload: { playerId: string };
 };
 
 const findValidSpawnPosition = (map: GameMap) => {
@@ -25,18 +26,24 @@ const findValidSpawnPosition = (map: GameMap) => {
   return spawnPosition;
 };
 
-export const createPlayer = (
-  id: string,
-  { map, grid }: CreatePlayerOptions
+export const onPlayerJoined = (
+  { playerId }: PlayerJoinedEvent['payload'],
+  { map, grid, gridLookup, players, playerLookup }: EventQueueDependencies
 ): GamePlayer => {
-  return {
+  const player = {
+    id: playerId,
     gridItem: grid.add({
       ...findValidSpawnPosition(map),
       w: 1,
       h: 1
     }),
-    id,
     character: Math.random() > 0.5 ? 'adventurer' : 'enchantress',
     directions: { up: false, down: false, left: false, right: false }
   };
+
+  players.push(player);
+  playerLookup.set(player.id, player);
+  gridLookup.set(player.gridItem, player);
+
+  return player;
 };
