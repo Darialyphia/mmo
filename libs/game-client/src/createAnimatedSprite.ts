@@ -1,71 +1,69 @@
-// import { spritePaths } from './sprites';
-// import * as PIXI from 'pixi.js';
-// import { Assets, type AnimatedSprite, type Texture } from 'pixi.js';
+import * as PIXI from 'pixi.js';
+import { Assets, type AnimatedSprite, type Texture } from 'pixi.js';
+import { Characters, characters, charactersBundle } from './assets/characters';
+import { Keys } from '@mmo/shared';
+import { createSpritesheetFrameObject } from './aseprite';
 
-// export type SpriteName = keyof (typeof spritePaths)['characters'];
+const spritesCache = new Map<string, PIXI.AnimatedSprite>();
+const spritesheetCache = new Map<PIXI.Texture, PIXI.Spritesheet>();
 
-// const spritesCache = new Map<string, PIXI.AnimatedSprite>();
-// const spritesheetCache = new Map<PIXI.Texture, PIXI.Spritesheet>();
+type TexturesMap = Record<Keys<Characters>, Texture>;
+let texturesMap: TexturesMap;
 
-// type TexturesMap = Record<keyof (typeof spritePaths)['characters'], Texture>;
-// let texturesMap: TexturesMap;
+export const loadCharactersBundle = async () => {
+  await Assets.addBundle('characters', charactersBundle);
 
-// export const loadSpriteTextures = async () => {
-//   await Assets.addBundle('characters', spritePaths.characters);
+  texturesMap = await Assets.loadBundle('characters');
 
-//   texturesMap = await Assets.loadBundle('characters');
+  await Promise.all(
+    Object.entries(texturesMap).map(async ([name, texture]) => {
+      const { meta } = characters[name as Keys<Characters>];
 
-//   await Promise.all(
-//     Object.entries(texturesMap).map(async ([spriteName, texture]) => {
-//       const { meta } = sprites[spriteName as SpriteName];
+      const spritesheet = new PIXI.Spritesheet(texture, meta);
+      spritesheetCache.set(texture, spritesheet);
+      return spritesheet.parse();
+    })
+  );
+};
 
-//       const spritesheet = new PIXI.Spritesheet(texture, meta);
-//       spritesheetCache.set(texture, spritesheet);
-//       return spritesheet.parse();
-//     })
-//   );
-// };
+export const updateTextures = (
+  sprite: PIXI.AnimatedSprite,
+  name: Keys<Characters>,
+  animation: string
+) => {
+  const { meta } = characters[name];
 
-// export const updateTextures = (
-//   id: string,
-//   spriteName: SpriteName,
-//   animation: string
-// ) => {
-//   const { meta } = sprites[spriteName];
+  sprite.textures = createSpritesheetFrameObject(
+    animation,
+    getSpritesheet(name),
+    meta
+  );
 
-//   const sprite = resolveRenderable<AnimatedSprite>(id);
+  sprite.play();
+};
 
-//   sprite.textures = createSpritesheetFrameObject(
-//     animation,
-//     getSpritesheet(spriteName),
-//     meta
-//   );
+export const getSpritesheet = (id: Keys<Characters>) => {
+  const texture = texturesMap[id];
 
-//   sprite.play();
-// };
+  if (!texture) {
+    throw new Error(`Could not get texture for sprite ${id}`);
+  }
 
-// export const getSpritesheet = (id: SpriteName) => {
-//   const texture = texturesMap[id];
+  return spritesheetCache.get(texture)!;
+};
 
-//   if (!texture) {
-//     throw new Error(`Could not get texture for sprite ${id}`);
-//   }
+export const createAnimatedSprite = (
+  id: Keys<Characters>,
+  initialAnimation: string
+) => {
+  const { meta } = characters[id];
 
-//   return spritesheetCache.get(texture)!;
-// };
+  const sprite = new PIXI.AnimatedSprite(
+    createSpritesheetFrameObject(initialAnimation, getSpritesheet(id), meta)
+  );
 
-// export const createAnimatedSprite = (
-//   id: SpriteName,
-//   initialAnimation: AnimationState
-// ) => {
-//   const { meta } = sprites[id];
+  sprite.anchor.set(0.5, 0.5);
+  sprite.play();
 
-//   const sprite = new PIXI.AnimatedSprite(
-//     createSpritesheetFrameObject(initialAnimation, getSpritesheet(id), meta)
-//   );
-
-//   sprite.anchor.set(0.5, 0.5);
-//   sprite.play();
-
-//   return sprite;
-// };
+  return sprite;
+};

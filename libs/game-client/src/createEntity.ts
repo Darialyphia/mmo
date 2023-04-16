@@ -1,6 +1,8 @@
 import * as PIXI from 'pixi.js';
-import type { Player } from '@mmo/shared';
+import type { Keys, Player } from '@mmo/shared';
 import { CELL_SIZE } from './constants';
+import { createAnimatedSprite } from './createAnimatedSprite';
+import { Characters } from './assets/characters';
 
 const playerCreationPromises = new Map<string, Promise<PIXI.Container>>();
 
@@ -10,18 +12,11 @@ const addEntity = async (player: Player) => {
   const container = new PIXI.Container();
   playerSpritesById[player.id] = container;
 
-  const g = new PIXI.Graphics();
-  g.lineStyle(1);
-  g.beginFill(
-    new PIXI.Color({ h: player.color, s: 100, l: 65, a: 0.5 }).toArray(),
-    1
+  const sprite = createAnimatedSprite(
+    player.character as Keys<Characters>,
+    'idle'
   );
-  g.drawCircle(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE * 0.33);
-  g.endFill();
-  // we offser the position by half a cell because cells are anchored on the center which naturally offsets them as well
-  g.position.set(-(CELL_SIZE / 2), -(CELL_SIZE / 2));
-
-  container.addChild(g);
+  container.addChild(sprite);
 
   return container;
 };

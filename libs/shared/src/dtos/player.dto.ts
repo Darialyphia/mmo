@@ -2,6 +2,6 @@ import type { Point } from '../types';
 
 export type Player = {
   position: Point;
-  color: number;
+  character: string;
   id: string;
 };

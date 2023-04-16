@@ -13,6 +13,7 @@ import { createCamera } from './createCamera';
 import { Stage } from '@pixi/layers';
 import type { Socket } from 'socket.io-client';
 import { createControls } from './createControls';
+import { loadCharactersBundle } from './createAnimatedSprite';
 
 PIXI.Container.defaultSortableChildren = true;
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
@@ -46,7 +47,7 @@ export const createGameEngine = async ({
   meta,
   socket
 }: CreateGameEngineOptions) => {
-  await loadTilesets();
+  await Promise.all([loadTilesets(), loadCharactersBundle()]);
 
   const { width, height } = container.getBoundingClientRect();
 

@@ -1,5 +1,6 @@
 import { randomInt, type SpatialHashGrid } from '@mmo/shared';
 import type { GameMap } from '../mapgen';
+import { GamePlayer } from '../game';
 
 type CreatePlayerOptions = {
   map: GameMap;
@@ -27,7 +28,7 @@ const findValidSpawnPosition = (map: GameMap) => {
 export const createPlayer = (
   id: string,
   { map, grid }: CreatePlayerOptions
-) => {
+): GamePlayer => {
   return {
     gridItem: grid.add({
       ...findValidSpawnPosition(map),
@@ -35,7 +36,7 @@ export const createPlayer = (
       h: 1
     }),
     id,
-    color: randomInt(360),
+    character: 'adventurer',
     directions: { up: false, down: false, left: false, right: false }
   };
 };

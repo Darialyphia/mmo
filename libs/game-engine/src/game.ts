@@ -58,7 +58,7 @@ export const createGame = () => {
     players.forEach(player => {
       playerDtos.push({
         id: player.id,
-        color: player.color,
+        character: player.character,
         position: { x: player.gridItem.x, y: player.gridItem.y }
       });
 
