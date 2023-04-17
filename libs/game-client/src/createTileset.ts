@@ -17,7 +17,6 @@ export const createTileset = async ({
   const columns = asepriteMeta.meta.size.w / CELL_SIZE;
   const rows = asepriteMeta.meta.size.h / CELL_SIZE;
   const tileCount = columns * rows;
-
   const data = {
     frames: Object.fromEntries(
       Array.from({ length: tileCount }, (_, index) => {

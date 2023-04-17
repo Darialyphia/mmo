@@ -1,6 +1,5 @@
-import url from './biome-seams.png';
-import asepriteMeta from './biome-seams.json';
-import { createTileset } from '../../../createTileset';
+import url from './biome-seams-v2.png';
+import asepriteMeta from './biome-seams-v2.json';
 
 export const biomeSeamsTileset = {
   url,

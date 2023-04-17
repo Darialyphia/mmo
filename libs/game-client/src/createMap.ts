@@ -7,13 +7,19 @@ import {
   type GameMeta,
   type MapCell,
   type GameStateSnapshotDto,
-  Keys
+  Keys,
+  Nullable
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
 import { isNumber, throttle } from 'lodash-es';
-import { getEdgeInfos, isHeightEdge, isBiomeEdge } from './utils';
+import {
+  isHeightEdge,
+  isBiomeEdge,
+  Neighborhood,
+  getCellTexture
+} from './utils';
 import { Tilesets, tilesets } from './assets/tilesets';
 import type { GameState } from '.';
 
@@ -64,41 +70,53 @@ export type CreateMapOptions = {
 };
 
 const getNeighbors = (
-  { position }: MapCell,
+  cell: MapCell,
   map: Map<string, MapCell>,
   meta: GameMeta
-) => {
+): Neighborhood => {
+  const { position } = cell;
   const isLeftEdge = position.x === 0;
   const isRightEdge = position.x === meta.width - 1;
   const isTopEdge = position.y === 0;
   const isBottomEdge = position.y === meta.height - 1;
 
-  return {
-    top: isTopEdge
-      ? null
-      : map.get(getCellKey({ x: position.x, y: position.y - 1 })),
-    bottom: isBottomEdge
-      ? null
-      : map.get(getCellKey({ x: position.x, y: position.y + 1 })),
-    left: isLeftEdge
-      ? null
-      : map.get(getCellKey({ x: position.x - 1, y: position.y })),
-    right: isRightEdge
-      ? null
-      : map.get(getCellKey({ x: position.x + 1, y: position.y }))
-  };
+  return [
+    [
+      isTopEdge && isLeftEdge
+        ? null
+        : map.get(getCellKey({ x: position.x - 1, y: position.y - 1 })),
+      isTopEdge
+        ? null
+        : map.get(getCellKey({ x: position.x, y: position.y - 1 })),
+      isTopEdge && isRightEdge
+        ? null
+        : map.get(getCellKey({ x: position.x + 1, y: position.y - 1 }))
+    ],
+    [
+      isLeftEdge
+        ? null
+        : map.get(getCellKey({ x: position.x - 1, y: position.y })),
+      cell,
+      isRightEdge
+        ? null
+        : map.get(getCellKey({ x: position.x + 1, y: position.y }))
+    ],
+    [
+      isBottomEdge && isLeftEdge
+        ? null
+        : map.get(getCellKey({ x: position.x - 1, y: position.y + 1 })),
+      isBottomEdge
+        ? null
+        : map.get(getCellKey({ x: position.x, y: position.y + 1 })),
+      isBottomEdge && isRightEdge
+        ? null
+        : map.get(getCellKey({ x: position.x + 1, y: position.y + 1 }))
+    ]
+  ];
 };
 
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const spriteCache = new Map<string, PIXI.Sprite>();
-
-  const tilesetBaseOptions = {
-    dimensions: {
-      w: CELL_SIZE * MAX_VARIANTS,
-      h: CELL_SIZE * TERRAINS_COUNT * MAX_TILES_PER_TERRAIN
-    },
-    tileSize: CELL_SIZE
-  };
 
   const cells: MapCell[] = [];
   const cellsByKey = new Map<string, MapCell>();
@@ -144,34 +162,16 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     };
   };
 
-  type EdgeResult = ReturnType<typeof computeCellEdges>;
-  const computeCellEdges = (cell: MapCell) => {
-    const { top, bottom, left, right } = getNeighbors(cell, cellsByKey, meta);
-    if (
-      top === undefined ||
-      bottom === undefined ||
-      left === undefined ||
-      right === undefined
-    ) {
+  const computeTexture = (cell: MapCell) => {
+    const neighbors = getNeighbors(cell, cellsByKey, meta);
+    const isUndecided = neighbors.some(row => row.includes(undefined));
+    if (isUndecided) {
       undecidedEdges.set(getCellKey(cell.position), true);
     } else {
       undecidedEdges.delete(getCellKey(cell.position));
     }
 
-    return {
-      terrain: getEdgeInfos([
-        isHeightEdge(top, cell),
-        isHeightEdge(bottom, cell),
-        isHeightEdge(left, cell),
-        isHeightEdge(right, cell)
-      ]),
-      biome: getEdgeInfos([
-        isBiomeEdge(top, cell),
-        isBiomeEdge(bottom, cell),
-        isBiomeEdge(left, cell),
-        isBiomeEdge(right, cell)
-      ])
-    };
+    return getCellTexture(neighbors, app.renderer);
   };
 
   const checkChunkEdges = () => {
@@ -190,39 +190,22 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       drawChunk(cameraPosition);
     }
   };
-  const addBiomeSeam = (
-    sprite: PIXI.Sprite,
-    { biome, terrain }: EdgeResult
-  ) => {
+
+  const addBiomeSeam = (sprite: PIXI.Sprite, textureId: string) => {
     const biomeSeamsSheet = getTileset('biomeSeams');
-    const biomeSprite = new PIXI.Sprite(
-      biomeSeamsSheet.textures[`biomeSeams-${biome.edge}`]
-    );
+    const biomeSprite = new PIXI.Sprite(biomeSeamsSheet.textures[textureId]);
     biomeSprite.anchor.set(0.5, 0.5);
-    biomeSprite.angle = biome.angle - terrain.angle;
     biomeSprite.cullable = true;
     sprite.addChild(biomeSprite);
-  };
-
-  const getCellInfos = (cell: MapCell) => {
-    const { terrain, biome } = computeCellEdges(cell)!;
-    const tileIndex =
-      (cell.height * MAX_TILES_PER_TERRAIN + terrain.edge) * MAX_VARIANTS +
-      randomInt(MAX_VARIANTS - 1);
-    const sheet = getTileset(cell.temperature);
-    const textureId = `${BIOME_TO_TILESET[cell.temperature]}-${tileIndex}`;
-
-    return { sheet, terrain, biome, tileIndex, textureId };
   };
 
   const getOrCreateCellSprite = (cell: MapCell) => {
     const cellKey = getCellKey(cell.position);
 
     if (!spriteCache.has(cellKey)) {
-      const { terrain, biome, sheet, textureId } = getCellInfos(cell);
-      const sprite = new PIXI.Sprite(sheet.textures[textureId]);
+      const texture = computeTexture(cell);
+      const sprite = new PIXI.Sprite(texture);
       sprite.anchor.set(0.5, 0.5);
-      sprite.angle = terrain.angle;
       sprite.cullable = true;
       sprite.alpha = 0;
 
@@ -234,22 +217,13 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       };
       app.ticker.add(increaseAlpha);
 
-      if (biome.edge) {
-        addBiomeSeam(sprite, { biome, terrain });
-      }
-
       spriteCache.set(cellKey, sprite);
     } else if (undecidedEdges.has(cellKey)) {
       const sprite = spriteCache.get(cellKey)!;
-      const { terrain, biome, sheet, textureId } = getCellInfos(cell);
+      const texture = computeTexture(cell);
 
-      sprite.angle = terrain.angle;
-      sprite.texture = sheet.textures[textureId]!;
-
-      if (biome.edge) {
-        sprite.removeChildren();
-        addBiomeSeam(sprite, { biome, terrain });
-      }
+      sprite.texture = texture;
+      sprite.removeChildren();
     }
 
     return spriteCache.get(cellKey)!;

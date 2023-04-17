@@ -1,0 +1,27 @@
+{ "frames": [
+   {
+    "filename": "desert-v2.aseprite",
+    "frame": { "x": 0, "y": 0, "w": 96, "h": 288 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 96, "h": 288 },
+    "sourceSize": { "w": 96, "h": 288 },
+    "duration": 100
+   }
+ ],
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.2.40-x64",
+  "image": "desert-v2.png",
+  "format": "RGBA8888",
+  "size": { "w": 96, "h": 288 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

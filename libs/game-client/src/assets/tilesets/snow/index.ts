@@ -1,6 +1,5 @@
-import url from './snow.png';
-import asepriteMeta from './snow.json';
-import { createTileset } from '../../../createTileset';
+import url from './snow-v2.png';
+import asepriteMeta from './snow-v2.json';
 
 export const snowTileset = {
   url,

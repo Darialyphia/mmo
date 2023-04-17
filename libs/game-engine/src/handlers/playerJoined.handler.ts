@@ -33,7 +33,9 @@ export const onPlayerJoined = (
   const player = {
     id: playerId,
     gridItem: grid.add({
-      ...findValidSpawnPosition(map),
+      // ...findValidSpawnPosition(map),
+      x: 0,
+      y: 0,
       w: 1,
       h: 1
     }),
