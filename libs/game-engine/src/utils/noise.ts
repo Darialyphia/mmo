@@ -5,7 +5,11 @@ import { isDefined, type Nullable } from '@mmo/shared';
 
 type CellNeighbors = {
   top: Nullable<number>;
+  topLeft: Nullable<number>;
+  topRight: Nullable<number>;
   bottom: Nullable<number>;
+  bottomLeft: Nullable<number>;
+  bottomRight: Nullable<number>;
   left: Nullable<number>;
   right: Nullable<number>;
 };
@@ -18,7 +22,12 @@ const getNeighbors = (index: number, map: number[]): CellNeighbors => {
 
   return {
     top: isTopEdge ? null : map[index - CHUNK_SIZE],
+    topLeft: isTopEdge || isLeftEdge ? null : map[index - CHUNK_SIZE - 1],
+    topRight: isTopEdge || isRightEdge ? null : map[index - CHUNK_SIZE + 1],
     bottom: isBottomEdge ? null : map[index + CHUNK_SIZE],
+    bottomLeft: isBottomEdge || isLeftEdge ? null : map[index + CHUNK_SIZE - 1],
+    bottomRight:
+      isBottomEdge || isRightEdge ? null : map[index + CHUNK_SIZE + 1],
     left: isLeftEdge ? null : map[index - 1],
     right: isRightEdge ? null : map[index + 1]
   };
