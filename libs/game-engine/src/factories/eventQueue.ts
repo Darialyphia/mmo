@@ -1,11 +1,4 @@
-import {
-  createQueue,
-  isNever,
-  type SpatialHashGrid,
-  GridItem
-} from '@mmo/shared';
-import type { GamePlayer } from '../game';
-import type { GameMap } from '../mapgen';
+import { createQueue, isNever } from '@mmo/shared';
 import {
   PlayerJoinedEvent,
   onPlayerJoined
@@ -15,30 +8,23 @@ import {
   onPlayerMovement
 } from '../handlers/playerMovement.handler';
 import { PlayerLeftEvent, onPlayerLeft } from '../handlers/playerLeft.handler';
+import { GameContext } from './context';
 
 export type GameEvent = PlayerMoveEvent | PlayerJoinedEvent | PlayerLeftEvent;
 
-export type EventQueueDependencies = {
-  players: GamePlayer[];
-  map: GameMap;
-  grid: SpatialHashGrid;
-  playerLookup: Map<string, GamePlayer>;
-  gridLookup: WeakMap<GridItem, GamePlayer>;
-};
-
-export const createEventQueue = (deps: EventQueueDependencies) => {
+export const createEventQueue = (ctx: GameContext) => {
   return createQueue((event: GameEvent) => {
     const type = event.type;
 
     switch (type) {
       case 'move':
-        onPlayerMovement(event.payload, deps);
+        onPlayerMovement(event.payload, ctx);
         break;
       case 'player joined':
-        onPlayerJoined(event.payload, deps);
+        onPlayerJoined(event.payload, ctx);
         break;
       case 'player left':
-        onPlayerLeft(event.payload, deps);
+        onPlayerLeft(event.payload, ctx);
         break;
       default:
         isNever(type);

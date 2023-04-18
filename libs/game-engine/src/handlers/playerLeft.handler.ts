@@ -1,6 +1,4 @@
-import { keyBy } from 'lodash-es';
-import { Directions } from '../game';
-import { EventQueueDependencies } from '../factories/eventQueue';
+import { GameContext } from '../factories/context';
 
 export type PlayerLeftEvent = {
   type: 'player left';
@@ -9,14 +7,13 @@ export type PlayerLeftEvent = {
 
 export const onPlayerLeft = (
   { playerId }: PlayerLeftEvent['payload'],
-  { players, playerLookup, grid, gridLookup }: EventQueueDependencies
+  { entities, entitiesLookup, grid, gridLookup }: GameContext
 ) => {
-  const player = playerLookup.get(playerId);
-  if (!player) {
-    throw new Error(`could not find player ${playerId}`);
-  }
-  players.splice(players.indexOf(player), 1);
+  const player = entitiesLookup.get(playerId);
+  if (!player) return;
+
+  entities.splice(entities.indexOf(player), 1);
   grid.remove(player.gridItem);
-  playerLookup.delete(player.id);
+  entitiesLookup.delete(player.id);
   gridLookup.delete(player.gridItem);
 };
