@@ -30,13 +30,14 @@ export const onPlayerJoined = (
   { playerId }: PlayerJoinedEvent['payload'],
   { map, grid, gridLookup, players, playerLookup }: EventQueueDependencies
 ): GamePlayer => {
-  const player = {
+  const player: GamePlayer = {
     id: playerId,
     gridItem: grid.add({
       ...findValidSpawnPosition(map),
       w: 1,
       h: 1
     }),
+    orientation: 'right',
     character: Math.random() > 0.5 ? 'adventurer' : 'enchantress',
     directions: { up: false, down: false, left: false, right: false }
   };

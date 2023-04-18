@@ -4,4 +4,5 @@ export type Entity = {
   position: Point;
   character: string;
   id: string;
+  orientation: 'left' | 'right';
 };

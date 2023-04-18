@@ -70,6 +70,7 @@ export const createGame = () => {
             return {
               id: player.id,
               character: player.character,
+              orientation: player.orientation,
               position: { x: player.gridItem.x, y: player.gridItem.y }
             };
           });

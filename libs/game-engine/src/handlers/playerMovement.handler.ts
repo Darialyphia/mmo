@@ -13,4 +13,6 @@ export const onPlayerMovement = (
 ) => {
   const player = keyBy(players, 'id')[playerId];
   Object.assign(player.directions, directions);
+  if (directions.left) player.orientation = 'left';
+  if (directions.right) player.orientation = 'right';
 };

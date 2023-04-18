@@ -98,6 +98,7 @@ export const createEntityManager = ({
 
       entities.forEach(entity => {
         const sprite = getOrCreateSprite(entity.data);
+        sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
         if (camera.container.children.indexOf(sprite) < 0) {
           camera.container.addChild(sprite);
         }
