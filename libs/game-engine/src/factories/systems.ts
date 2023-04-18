@@ -7,9 +7,9 @@ export const createSystems = (ctx: GameContext) => {
   const monsterSpawnSystem = createMonsterSpawnSystem(ctx);
 
   return {
-    run(tick: number) {
-      movementSystem();
-      monsterSpawnSystem(tick);
+    run(dt: number) {
+      movementSystem(dt);
+      monsterSpawnSystem(dt);
     }
   };
 };

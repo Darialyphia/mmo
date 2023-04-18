@@ -28,7 +28,7 @@ export const createContext = () => {
   const entities: Player[] = [];
   const entitiesLookup = new Map<string, Player>();
   const grid = createSpatialHashGrid({
-    dimensions: { w: map.width, h: map.height },
+    dimensions: { w: map.width / 10, h: map.height / 10 },
     bounds: {
       start: { x: 0, y: 0 },
       end: { x: map.width, y: map.height }
@@ -40,30 +40,30 @@ export const createContext = () => {
 };
 
 export const getSnapshot = (context: GameContext): GameStateSnapshot => {
-  const fieldOfView = Object.fromEntries(
-    context.entities.filter(isPlayer).map(entity => {
-      const entities = context.grid
-        .findNearbyRadius(
-          { x: entity.gridItem.x, y: entity.gridItem.y },
-          PLAYER_FOV
-        )
-        .map(gridItem => {
-          const entity = context.gridLookup.get(gridItem)!;
-          if (!hasGridItem(entity) || !hasOrientation(entity)) return;
+  const players = context.entities.filter(isPlayer);
+  const p = performance.now();
+  const entries = players.map(entity => {
+    const entities = context.grid
+      .findNearbyRadius(
+        { x: entity.gridItem.x, y: entity.gridItem.y },
+        PLAYER_FOV
+      )
+      .map(gridItem => {
+        const entity = context.gridLookup.get(gridItem)!;
+        if (!hasGridItem(entity) || !hasOrientation(entity)) return;
 
-          return {
-            id: entity.id,
-            spriteId: entity.spriteId,
-            orientation: entity.orientation,
-            position: { x: entity.gridItem.x, y: entity.gridItem.y }
-          };
-        })
-        .filter(isDefined);
-      const cells = context.map.getFieldOfView(entity.gridItem, PLAYER_FOV);
+        return {
+          id: entity.id,
+          spriteId: entity.spriteId,
+          orientation: entity.orientation,
+          position: { x: entity.gridItem.x, y: entity.gridItem.y }
+        };
+      })
+      .filter(isDefined);
+    const cells = context.map.getFieldOfView(entity.gridItem, PLAYER_FOV);
 
-      return [entity.id, { entities, cells }];
-    })
-  );
+    return [entity.id, { entities, cells }];
+  });
 
-  return { fieldOfView };
+  return { fieldOfView: Object.fromEntries(entries) };
 };

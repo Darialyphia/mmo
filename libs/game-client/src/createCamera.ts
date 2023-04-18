@@ -3,6 +3,7 @@ import { Application, Container, Graphics } from 'pixi.js';
 import { CELL_SIZE } from './constants';
 import { GameState } from '.';
 import { getOrCreateSprite } from './createEntityManager';
+import { throttle } from 'lodash-es';
 
 export type Camera = ReturnType<typeof createCamera>;
 
@@ -15,9 +16,15 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   const container = new Container();
   container.scale.set(2, 2);
   container.position.set(app.screen.width / 2, app.screen.height / 2);
-  const setPosition = () => {
+
+  const setPosition = throttle(() => {
+    console.log(
+      'set camera position',
+      app.screen.width / 2,
+      app.screen.height / 2
+    );
     container.position.set(app.screen.width / 2, app.screen.height / 2);
-  };
+  }, 100);
   window.addEventListener('resize', setPosition);
 
   const fow = new Graphics();
@@ -60,22 +67,17 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   };
   let entitiesById: Record<string, Entity> = {};
 
-  const centerCameraOnPlayer = () => {
-    const player = entitiesById[meta.sessionId];
-    if (!player) return;
-
-    const sprite = getOrCreateSprite(player);
-    if (!sprite) return;
-
-    update(sprite.position);
-  };
-
-  app.ticker.add(() => {
-    centerCameraOnPlayer();
-  });
-
   return {
     container,
+    centerOn(entityId: string) {
+      const player = entitiesById[entityId];
+      if (!player) return;
+
+      const sprite = getOrCreateSprite(player);
+      if (!sprite) return;
+
+      update(sprite.position);
+    },
     cleanup() {
       window.removeEventListener('resize', setPosition);
     },

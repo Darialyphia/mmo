@@ -2,8 +2,9 @@ import { GameContext } from '../factories/context';
 import { Point, setMagnitude } from '@mmo/shared';
 import { PLAYER_SPEED } from '../constants';
 import { Directions } from '../types';
+import { Player } from '../factories/player';
 
-const computeVelocity = (directions: Directions, speed: number): Point => {
+const computeVelocity = (directions: Directions): Point => {
   const vel = { x: 0, y: 0 };
   if (directions.right) {
     vel.x += 1;
@@ -17,7 +18,7 @@ const computeVelocity = (directions: Directions, speed: number): Point => {
   if (directions.down) {
     vel.y += 1;
   }
-  return setMagnitude(vel, speed);
+  return vel;
 };
 
 export type PlayerMoveEvent = {
@@ -29,10 +30,10 @@ export const onPlayerMovement = (
   { playerId, directions }: PlayerMoveEvent['payload'],
   { entitiesLookup }: GameContext
 ) => {
-  const player = entitiesLookup.get(playerId);
+  const player = entitiesLookup.get(playerId) as Player;
   if (!player) return;
 
-  player.velocity = computeVelocity(directions, PLAYER_SPEED);
+  player.velocity = computeVelocity(directions);
 
   if (player.velocity.x < 0) player.orientation = 'left';
   if (player.velocity.x > 0) player.orientation = 'right';

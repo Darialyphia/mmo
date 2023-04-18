@@ -4,7 +4,8 @@ import {
   type Keys,
   type Nullable,
   type Entity,
-  type Point
+  type Point,
+  GameMeta
 } from '@mmo/shared';
 import { createAnimatedSprite } from './createAnimatedSprite';
 import { Characters } from './assets/characters';
@@ -37,6 +38,7 @@ export const getOrCreateSprite = (entity: Entity) => {
 type CreateEntityManagerOptions = {
   camera: Camera;
   app: PIXI.Application;
+  meta: GameMeta;
 };
 
 type ManagerEntity = {
@@ -48,7 +50,8 @@ type ManagerEntity = {
 
 export const createEntityManager = ({
   camera,
-  app
+  app,
+  meta
 }: CreateEntityManagerOptions) => {
   let entities: ManagerEntity[] = [];
 
@@ -76,7 +79,11 @@ export const createEntityManager = ({
     });
   };
 
+  const centerOnPlayer = () => {
+    camera.centerOn(meta.sessionId);
+  };
   app.ticker.add(interpolateEntities);
+  app.ticker.add(centerOnPlayer);
 
   return {
     onStateUpdate(snapshot: GameState, prevSnapshot: GameState) {

@@ -63,7 +63,7 @@ export const createGameClient = async ({
 
   const camera = createCamera({ app, meta });
   const map = await createMap({ app, camera, meta });
-  const entityManager = createEntityManager({ app, camera });
+  const entityManager = createEntityManager({ app, camera, meta });
   const controls = createControls();
   controls.on('move', directions => {
     socket.emit('move', directions);
@@ -84,9 +84,9 @@ export const createGameClient = async ({
         timestamp: performance.now()
       };
 
-      map.onStateUpdate(state);
-      entityManager.onStateUpdate(state, prevState);
       camera.onStateUpdate(state);
+      entityManager.onStateUpdate(state, prevState);
+      map.onStateUpdate(state);
     },
     cleanup() {
       camera.cleanup();

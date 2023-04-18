@@ -20,7 +20,7 @@ export const createGame = () => {
   const queue = createEventQueue(context);
   const systems = createSystems(context);
 
-  let tick = 0;
+  let prevTick = 0;
   let interval: Nullable<ReturnType<typeof setInterval>>;
 
   const engine = {
@@ -37,13 +37,16 @@ export const createGame = () => {
 
     start() {
       if (engine.isRunning) return;
-      tick = 0;
+      prevTick = Date.now();
 
       interval = setInterval(() => {
-        tick++;
+        const now = Date.now();
+
         queue.process();
-        systems.run(tick);
+        systems.run(now - prevTick);
         emitter.emit('update', getSnapshot(context));
+
+        prevTick = now;
       }, 1000 / TICK_RATE);
     },
 

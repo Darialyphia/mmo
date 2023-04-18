@@ -173,7 +173,6 @@ export const createSpatialHashGrid = ({
   };
 
   return {
-    dimensions,
     add,
     remove,
     update,
