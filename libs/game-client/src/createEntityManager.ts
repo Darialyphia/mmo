@@ -18,7 +18,7 @@ const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
 
   const sprite = createAnimatedSprite(
-    entity.character as Keys<Characters>,
+    entity.spriteId as Keys<Characters>,
     'idle'
   );
   container.addChild(sprite);
@@ -99,6 +99,7 @@ export const createEntityManager = ({
       entities.forEach(entity => {
         const sprite = getOrCreateSprite(entity.data);
         sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
+        sprite.zIndex = entity.data.position.y;
         if (camera.container.children.indexOf(sprite) < 0) {
           camera.container.addChild(sprite);
         }

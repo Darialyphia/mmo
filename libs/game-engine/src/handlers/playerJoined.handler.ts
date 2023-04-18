@@ -1,5 +1,5 @@
 import { GameContext } from '../factories/context';
-import { createPlayer, GamePlayer } from '../factories/player';
+import { createPlayer, Player } from '../factories/player';
 
 export type PlayerJoinedEvent = {
   type: 'player joined';
@@ -9,7 +9,7 @@ export type PlayerJoinedEvent = {
 export const onPlayerJoined = (
   { playerId }: PlayerJoinedEvent['payload'],
   ctx: GameContext
-): GamePlayer => {
+): Player => {
   const player = createPlayer(playerId, ctx);
   ctx.entities.push(player);
   ctx.entitiesLookup.set(player.id, player);

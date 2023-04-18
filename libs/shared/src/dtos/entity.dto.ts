@@ -2,7 +2,7 @@ import type { Point } from '../types';
 
 export type Entity = {
   position: Point;
-  character: string;
+  spriteId: string;
   id: string;
   orientation: 'left' | 'right';
 };

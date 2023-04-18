@@ -2,13 +2,16 @@ import { GameContext } from './context';
 import { findValidSpawnPosition } from '../utils/map';
 import { GameEntity, WithBrand, WithGridItem, WithVelocity } from '../types';
 
-export type GamePlayer = GameEntity &
+export type Player = GameEntity &
   WithBrand<'player'> &
   WithGridItem &
   WithVelocity;
 
+export const isPlayer = (x: GameEntity): x is Player =>
+  '__brand' in x && x.__brand === 'player';
+
 export const createPlayer = (playerId: string, { map, grid }: GameContext) => {
-  const player: GamePlayer = {
+  const player: Player = {
     __brand: 'player',
     id: playerId,
     gridItem: grid.add({
@@ -18,7 +21,7 @@ export const createPlayer = (playerId: string, { map, grid }: GameContext) => {
     }),
     orientation: 'right',
     velocity: { x: 0, y: 0 },
-    character: Math.random() > 0.5 ? 'adventurer' : 'enchantress'
+    spriteId: Math.random() > 0.5 ? 'adventurer' : 'enchantress'
   };
 
   return player;

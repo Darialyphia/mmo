@@ -6,7 +6,7 @@ import type {
   Entity
 } from '@mmo/shared';
 import * as PIXI from 'pixi.js';
-import { createMap, loadTilesets } from './createMap';
+import { createMap } from './createMap';
 import { enablePIXIDevtools } from './utils';
 import { createCamera } from './createCamera';
 import { Stage } from '@pixi/layers';
@@ -14,6 +14,7 @@ import type { Socket } from 'socket.io-client';
 import { createControls } from './createControls';
 import { loadCharactersBundle } from './createAnimatedSprite';
 import { createEntityManager, getOrCreateSprite } from './createEntityManager';
+import { loadTilesets } from './caches/tileset';
 
 PIXI.Container.defaultSortableChildren = true;
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;

@@ -4,51 +4,13 @@ import {
   type Point,
   type GameMeta,
   type MapCell,
-  clamp,
-  Keys
+  clamp
 } from '@mmo/shared';
-import { createTileset } from './createTileset';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
-import { isNumber, throttle } from 'lodash-es';
-import { BIOME_TO_TILESET, Neighborhood, getCellTexture } from './utils';
-import { Tilesets, tilesets } from './assets/tilesets';
+import { throttle, isEqual } from 'lodash-es';
 import type { GameState } from '.';
-
-const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
-
-const tilesetMap = new Map<string, PIXI.Spritesheet>();
-
-export const loadTilesets = async () => {
-  await Promise.all(
-    Object.entries(tilesets).map(async ([name, { url, asepriteMeta }]) => {
-      const tileset = await createTileset({
-        asepriteMeta,
-        url,
-        name
-      });
-
-      tilesetMap.set(name, tileset);
-    })
-  );
-};
-
-export const getTileset = (id: string | number) => {
-  if (isNumber(id)) {
-    const mapping = BIOME_TO_TILESET[id];
-    if (!mapping) {
-      throw new Error(`Unknown biome: ${id}`);
-    }
-    id = mapping;
-  }
-  const tileset = tilesetMap.get(id);
-
-  if (!tileset) {
-    throw new Error(`Unknown tileset: ${id}`);
-  }
-
-  return tileset;
-};
+import { getCellKey, getCellTexture, getNeighbors } from './utils/map';
 
 export type CreateMapOptions = {
   app: PIXI.Application;
@@ -56,57 +18,12 @@ export type CreateMapOptions = {
   meta: GameMeta;
 };
 
-const getNeighbors = (
-  cell: MapCell,
-  map: Map<string, MapCell>,
-  meta: GameMeta
-): Neighborhood => {
-  const { position } = cell;
-  const isLeftEdge = position.x === 0;
-  const isRightEdge = position.x === meta.width - 1;
-  const isTopEdge = position.y === 0;
-  const isBottomEdge = position.y === meta.height - 1;
-
-  return [
-    [
-      isTopEdge && isLeftEdge
-        ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y - 1 })),
-      isTopEdge
-        ? null
-        : map.get(getCellKey({ x: position.x, y: position.y - 1 })),
-      isTopEdge && isRightEdge
-        ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y - 1 }))
-    ],
-    [
-      isLeftEdge
-        ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y })),
-      cell,
-      isRightEdge
-        ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y }))
-    ],
-    [
-      isBottomEdge && isLeftEdge
-        ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y + 1 })),
-      isBottomEdge
-        ? null
-        : map.get(getCellKey({ x: position.x, y: position.y + 1 })),
-      isBottomEdge && isRightEdge
-        ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y + 1 }))
-    ]
-  ];
-};
-
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const spriteCache = new Map<string, PIXI.Sprite>();
 
   const cells: MapCell[] = [];
   const cellsByKey = new Map<string, MapCell>();
+  // The cells whose texture have been evaluated but information about surrounfing tiles was missing
   const undecidedEdges = new Map<string, true>();
 
   const mapContainer = new PIXI.Container();
@@ -120,25 +37,24 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   let currentChunkContainer = new PIXI.Container();
   mapContainer.addChild(currentChunkContainer);
 
-  const chunkThreshold = {
+  const getChunkThreshold = () => ({
     x: app.screen.width / 2 / CELL_SIZE / camera.container.scale.x,
     y: app.screen.height / 2 / CELL_SIZE / camera.container.scale.x
-  };
+  });
 
-  const chunkSize = {
+  const getChunkSize = () => ({
     w: Math.ceil(
       (app.screen.width / CELL_SIZE / camera.container.scale.x) * 1.5
     ),
     h: Math.ceil(
       (app.screen.height / CELL_SIZE / camera.container.scale.y) * 1.5
     )
-  };
+  });
 
   const currentChunk: Rectangle = {
     x: 0,
     y: 0,
-    w: chunkSize.w,
-    h: chunkSize.h
+    ...getChunkSize()
   };
 
   const getCameraPosition = () => {
@@ -163,27 +79,19 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
 
   const checkChunkEdges = () => {
     const cameraPosition = getCameraPosition();
-
-    const left = cameraPosition.x - currentChunk.x < chunkThreshold.x;
+    const threshold = getChunkThreshold();
+    const left = cameraPosition.x - currentChunk.x < threshold.x;
     const right =
-      currentChunk.x + currentChunk.w - cameraPosition.x < chunkThreshold.x;
-    const top = cameraPosition.y - currentChunk.y < chunkThreshold.y;
+      currentChunk.x + currentChunk.w - cameraPosition.x < threshold.x;
+    const top = cameraPosition.y - currentChunk.y < threshold.y;
     const bottom =
-      currentChunk.y + currentChunk.h - cameraPosition.y < chunkThreshold.y;
+      currentChunk.y + currentChunk.h - cameraPosition.y < threshold.y;
 
     const isCloseToChunkEdge = left || right || top || bottom;
 
     if (isCloseToChunkEdge) {
       drawChunk(cameraPosition);
     }
-  };
-
-  const addBiomeSeam = (sprite: PIXI.Sprite, textureId: string) => {
-    const biomeSeamsSheet = getTileset('biomeSeams');
-    const biomeSprite = new PIXI.Sprite(biomeSeamsSheet.textures[textureId]);
-    biomeSprite.anchor.set(0.5, 0.5);
-    biomeSprite.cullable = true;
-    sprite.addChild(biomeSprite);
   };
 
   const getOrCreateCellSprite = (cell: MapCell) => {
@@ -248,18 +156,18 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   }, 100);
 
   const drawChunk = (center: Point, force?: boolean) => {
+    const { w, h } = getChunkSize();
     const newChunk = {
-      x: clamp(center.x - Math.floor(chunkSize.w / 2), 0, Infinity),
-      y: clamp(center.y - Math.floor(chunkSize.h / 2), 0, Infinity)
+      x: clamp(center.x - Math.floor(w / 2), 0, Infinity),
+      y: clamp(center.y - Math.floor(h / 2), 0, Infinity),
+      w,
+      h
     };
 
-    const isEqual =
-      currentChunk.x === newChunk.x && currentChunk.y === newChunk.y;
-    const shouldSkip = !force && isEqual;
+    const shouldSkip = !force && isEqual(currentChunk, newChunk);
     if (shouldSkip) return;
 
     Object.assign(currentChunk, newChunk);
-
     drawCells();
   };
 

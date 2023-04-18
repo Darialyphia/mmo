@@ -1,9 +1,12 @@
 import { addVector, clamp } from '@mmo/shared';
 import { GameContext } from '../factories/context';
+import { hasGridItem, hasVelocity } from '../types';
 
 export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
   return () => {
     entities.forEach(entity => {
+      if (!hasGridItem(entity) || !hasVelocity(entity)) return;
+
       const newPos = addVector(
         { x: entity.gridItem.x, y: entity.gridItem.y },
         entity.velocity

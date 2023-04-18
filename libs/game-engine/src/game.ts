@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
-import type { MapCell, Entity, Nullable } from '@mmo/shared';
+import type { Nullable } from '@mmo/shared';
 import { TICK_RATE } from './constants';
 import { createEventQueue, type GameEvent } from './factories/eventQueue';
 import { createSystems } from './factories/systems';
@@ -20,6 +20,7 @@ export const createGame = () => {
   const queue = createEventQueue(context);
   const systems = createSystems(context);
 
+  let tick = 0;
   let interval: Nullable<ReturnType<typeof setInterval>>;
 
   const engine = {
@@ -36,10 +37,12 @@ export const createGame = () => {
 
     start() {
       if (engine.isRunning) return;
+      tick = 0;
 
       interval = setInterval(() => {
+        tick++;
         queue.process();
-        systems.run();
+        systems.run(tick);
         emitter.emit('update', getSnapshot(context));
       }, 1000 / TICK_RATE);
     },

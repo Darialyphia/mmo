@@ -4,7 +4,6 @@ import { Characters, characters, charactersBundle } from './assets/characters';
 import { Keys } from '@mmo/shared';
 import { createSpritesheetFrameObject } from './aseprite';
 
-const spritesCache = new Map<string, PIXI.AnimatedSprite>();
 const spritesheetCache = new Map<PIXI.Texture, PIXI.Spritesheet>();
 
 type TexturesMap = Record<Keys<Characters>, Texture>;
