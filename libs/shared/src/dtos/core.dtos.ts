@@ -30,4 +30,5 @@ export type GameStateSnapshotDto = {
 export type GameMeta = {
   height: number;
   width: number;
+  sessionId: string;
 };

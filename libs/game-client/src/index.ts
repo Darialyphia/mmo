@@ -34,19 +34,17 @@ const createGameState = (): GameState => {
   };
 };
 
-export type CreateGameEngineOptions = {
+export type CreateGameClientOptions = {
   container: HTMLElement;
-  sessionId: string;
   meta: GameMeta;
   socket: Socket;
 };
 
-export const createGameEngine = async ({
+export const createGameClient = async ({
   container,
-  sessionId,
   meta,
   socket
-}: CreateGameEngineOptions) => {
+}: CreateGameClientOptions) => {
   await Promise.all([loadTilesets(), loadCharactersBundle()]);
 
   const { width, height } = container.getBoundingClientRect();
@@ -60,8 +58,6 @@ export const createGameEngine = async ({
     resizeTo: container
   });
   enablePIXIDevtools(app);
-
-  // create the stage instead of container
   app.stage = new Stage();
 
   const camera = createCamera({ app, meta });
@@ -76,20 +72,6 @@ export const createGameEngine = async ({
 
   let state = createGameState();
 
-  const centerCameraOnPlayer = () => {
-    const player = state.entitiesById[sessionId];
-    if (!player) return;
-
-    const sprite = getOrCreateSprite(player);
-    if (!sprite) return;
-
-    camera.update(sprite.position);
-  };
-
-  app.ticker.add(() => {
-    centerCameraOnPlayer();
-  });
-
   return {
     canvas: app.view,
     updateState(newState: GameStateSnapshotDto) {
@@ -100,8 +82,10 @@ export const createGameEngine = async ({
         fieldOfView: newState.fieldOfView,
         timestamp: performance.now()
       };
+
       map.onStateUpdate(state);
       entityManager.onStateUpdate(state, prevState);
+      camera.onStateUpdate(state);
     },
     cleanup() {
       camera.cleanup();
@@ -111,4 +95,4 @@ export const createGameEngine = async ({
   };
 };
 
-export type GameEngine = AsyncReturnType<typeof createGameEngine>;
+export type GameClient = AsyncReturnType<typeof createGameClient>;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { createGameEngine, type GameEngine } from '@mmo/game-client';
+import { createGameClient, type GameClient } from '@mmo/game-client';
 
 definePage({
   name: 'Home'
@@ -14,10 +14,9 @@ socket.on('connect', () => {
   });
   socket.on('game-meta', async payload => {
     if (!container.value) return;
-    engine = await createGameEngine({
+    engine = await createGameClient({
       container: container.value,
-      sessionId: socket.id,
-      meta: payload,
+      meta: { ...payload, sessionId: socket.id },
       socket
     });
     const { canvas } = engine;
@@ -28,7 +27,7 @@ socket.on('connect', () => {
 });
 
 const container = ref<HTMLDivElement>();
-let engine: GameEngine;
+let engine: GameClient;
 
 onUnmounted(() => {
   engine?.cleanup();

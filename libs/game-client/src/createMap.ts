@@ -1,32 +1,19 @@
 import * as PIXI from 'pixi.js';
 import {
-  randomInt,
   type Rectangle,
   type Point,
-  clamp,
   type GameMeta,
   type MapCell,
-  type GameStateSnapshotDto,
-  Keys,
-  Nullable
+  clamp,
+  Keys
 } from '@mmo/shared';
 import { createTileset } from './createTileset';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
 import { isNumber, throttle } from 'lodash-es';
-import {
-  isHeightEdge,
-  isBiomeEdge,
-  Neighborhood,
-  getCellTexture
-} from './utils';
+import { BIOME_TO_TILESET, Neighborhood, getCellTexture } from './utils';
 import { Tilesets, tilesets } from './assets/tilesets';
 import type { GameState } from '.';
-
-const MAX_VARIANTS = 4;
-const MAX_TILES_PER_TERRAIN = 6;
-const TERRAINS_COUNT = 4;
-const BIOME_TO_TILESET: Keys<Tilesets>[] = ['snow', 'base', 'desert'];
 
 const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
 

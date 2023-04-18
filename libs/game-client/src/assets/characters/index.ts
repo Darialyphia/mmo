@@ -1,10 +1,12 @@
 import type { CharacterResource } from '../types';
 import { adventurer } from './adventurer';
 import { enchantress } from './enchantress';
+import { zombie } from './zombie';
 
 export const characters = {
   adventurer,
-  enchantress
+  enchantress,
+  zombie
 } satisfies Record<string, CharacterResource>;
 
 export type Characters = typeof characters;

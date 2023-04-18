@@ -1,13 +1,8 @@
 import {
   type Point,
   type Size,
-  type Rectangle,
   lerp,
   mulVector,
-  clamp,
-  MapCellEdge,
-  type MapCellAngle,
-  isNever,
   type Nullable,
   type MapCell,
   isDefined,
@@ -15,7 +10,6 @@ import {
 } from '@mmo/shared';
 import { CELL_SIZE } from './constants';
 import * as PIXI from 'pixi.js';
-import type { FrameObject, ISpritesheetData, Spritesheet } from 'pixi.js';
 import { Tilesets } from './assets/tilesets';
 import { getTileset } from './createMap';
 
@@ -65,7 +59,7 @@ export type NeighborRow = [
 ];
 export type Neighborhood = [NeighborRow, NeighborRow, NeighborRow];
 
-const BIOME_TO_TILESET: Keys<Tilesets>[] = ['snow', 'base', 'desert'];
+export const BIOME_TO_TILESET: Keys<Tilesets>[] = ['snow', 'base', 'desert'];
 const TILE_ROWS_PER_TERRAIN = 3;
 const TILES_PER_ROW = 3;
 // prettier-ignore
