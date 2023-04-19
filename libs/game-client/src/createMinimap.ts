@@ -52,7 +52,7 @@ export const createMiniMap = ({ app, meta }: CreateMiniMapOptions) => {
       entitiesG.clear();
       snapshot.entities.forEach(entity => {
         entitiesG.beginFill(entity.id === meta.sessionId ? 0x0000ff : 0xff0000);
-        entitiesG.drawCircle(entity.position.x, entity.position.y, 6);
+        entitiesG.drawCircle(entity.position.x, entity.position.y, 1);
       });
     }
   };

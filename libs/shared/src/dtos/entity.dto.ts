@@ -5,4 +5,5 @@ export type Entity = {
   spriteId: string;
   id: string;
   orientation: 'left' | 'right';
+  path?: Point[];
 };

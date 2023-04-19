@@ -55,6 +55,7 @@ export const getSnapshot = (context: GameContext): GameStateSnapshot => {
             id: entity.id,
             spriteId: entity.spriteId,
             orientation: entity.orientation,
+            path: entity.path,
             position: { x: entity.gridItem.x, y: entity.gridItem.y }
           };
         })

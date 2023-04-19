@@ -55,6 +55,11 @@ export const createEntityManager = ({
 }: CreateEntityManagerOptions) => {
   let entities: ManagerEntity[] = [];
 
+  const debugContainer = new PIXI.Container();
+
+  debugContainer.zIndex = 10;
+  camera.container.addChild(debugContainer);
+
   const interpolateEntities = () => {
     const now = performance.now();
     entities.forEach(async entity => {
@@ -103,12 +108,26 @@ export const createEntityManager = ({
         };
       });
 
+      debugContainer.removeChildren();
+
       entities.forEach(entity => {
         const sprite = getOrCreateSprite(entity.data);
         sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
         sprite.zIndex = entity.data.position.y;
         if (camera.container.children.indexOf(sprite) < 0) {
           camera.container.addChild(sprite);
+        }
+
+        if (entity.data.path) {
+          const g = new PIXI.Graphics();
+          debugContainer.addChild(g);
+          g.lineStyle({ width: 1, color: 0xffff00 });
+          const start = coordsToPixels(entity.data.position);
+          g.moveTo(start.x, start.y);
+          entity.data.path.forEach(point => {
+            const { x, y } = coordsToPixels(point);
+            g.lineTo(x, y);
+          });
         }
       });
     }
