@@ -1,5 +1,14 @@
 import { zip } from 'lodash-es';
-import { type MapCell, type Point, clamp, dist } from '@mmo/shared';
+import {
+  type MapCell,
+  type Point,
+  clamp,
+  dist,
+  Circle,
+  Boundaries,
+  subVector,
+  addVector
+} from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
 import { CHUNK_SIZE, HEIGHT, WIDTH } from './constants';
 import { generateNoiseChunk, sampleNoise } from './utils/noise';
@@ -119,22 +128,21 @@ const getCellAt = ({ x, y }: Point, seed: number) => {
   return cells[(y - chunkOrigin.y) * CHUNK_SIZE + x - chunkOrigin.x];
 };
 
-const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
-  x = Math.round(x);
-  y = Math.round(y);
-  const min = {
-    x: clamp(x - fov, 0, WIDTH - 1),
-    y: clamp(y - fov, 0, HEIGHT - 1)
-  };
-  const max = {
-    x: clamp(x + fov, 0, WIDTH - 1),
-    y: clamp(y + fov, 0, HEIGHT - 1)
-  };
-
+const getCellsInside = (
+  { min, max }: Boundaries<Point>,
+  seed: number,
+  fov?: Circle
+) => {
   const cells: MapCell[] = [];
-  for (let cellX = min.x; cellX <= max.x; cellX++) {
-    for (let cellY = min.y; cellY <= max.y; cellY++) {
-      const isVisible = dist({ x, y }, { x: cellX, y: cellY }) <= fov;
+  for (let cellY = min.y; cellY <= max.y; cellY++) {
+    for (let cellX = min.x; cellX <= max.x; cellX++) {
+      const isVisible =
+        !fov ||
+        dist(
+          { x: Math.round(fov.x), y: Math.round(fov.y) },
+          { x: cellX, y: cellY }
+        ) <= fov.r;
+
       if (isVisible) {
         cells.push(getCellAt({ x: cellX, y: cellY }, seed));
       }
@@ -143,13 +151,31 @@ const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
   return cells;
 };
 
+const clampToMapBounds = ({ x, y }: Point) => ({
+  x: clamp(Math.round(x), 0, WIDTH - 1),
+  y: clamp(Math.round(y), 0, HEIGHT - 1)
+});
+
+const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
+  const min = clampToMapBounds(subVector({ x, y }, fov));
+  const max = clampToMapBounds(addVector({ x, y }, fov));
+
+  return getCellsInside({ min, max }, seed, { x, y, r: fov });
+};
+
 export const createMap = () => {
-  const seed = 694201337;
+  const seed = 68;
 
   return {
     width: WIDTH,
     height: HEIGHT,
     getCellAt: (pt: Point) => getCellAt(pt, seed),
+    getWithinBounds: (bounds: Boundaries<Point>) => {
+      const min = clampToMapBounds(bounds.min);
+      const max = clampToMapBounds(bounds.max);
+
+      return getCellsInside({ min, max }, seed);
+    },
     getFieldOfView: (pt: Point, fov: number) => getFieldOfView(pt, fov, seed)
   };
 };

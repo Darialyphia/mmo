@@ -37,15 +37,20 @@ export const createGame = () => {
 
     start() {
       if (engine.isRunning) return;
-      prevTick = Date.now();
+      prevTick = performance.now();
+      const perfBudget = 1000 / TICK_RATE;
 
       interval = setInterval(() => {
-        const now = Date.now();
+        const now = performance.now();
 
         queue.process();
         systems.run(now - prevTick);
         emitter.emit('update', getSnapshot(context));
 
+        const elapsed = performance.now() - now;
+        if (elapsed > perfBudget) {
+          console.log('tick duration over performance budget', elapsed);
+        }
         prevTick = now;
       }, 1000 / TICK_RATE);
     },

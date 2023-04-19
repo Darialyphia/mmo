@@ -1,4 +1,4 @@
-import { randomInt } from '@mmo/shared';
+import { MapCell, Point, randomInt } from '@mmo/shared';
 import { GameMap } from '../mapgen';
 
 export const findValidSpawnPosition = (map: GameMap) => {
@@ -18,3 +18,6 @@ export const findValidSpawnPosition = (map: GameMap) => {
 
   return spawnPosition;
 };
+
+export const getCellKey = (cell: { position: Point }) =>
+  `${cell.position.x}:${cell.position.y}`;

@@ -20,6 +20,6 @@ export const createMatrix = <T>(
   dimensions: Size,
   initialValue: (point: Point) => T
 ): Matrix<T> =>
-  Array.from({ length: dimensions.w }, (_, x) =>
-    Array.from({ length: dimensions.h }, (_, y) => initialValue({ x, y }))
+  Array.from({ length: dimensions.h }, (_, x) =>
+    Array.from({ length: dimensions.w }, (_, y) => initialValue({ x, y }))
   );

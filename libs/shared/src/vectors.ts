@@ -3,15 +3,33 @@ import type { Point } from './types/geometry';
 
 export type AngleInDegrees = number;
 
-export const addVector = (vec1: Point, vec2: Point) => ({
-  x: vec1.x + vec2.x,
-  y: vec1.y + vec2.y
-});
+export const addVector = (vec1: Point, vec2: Point | number) => {
+  if (typeof vec2 === 'number') {
+    return {
+      x: vec1.x + vec2,
+      y: vec1.y + vec2
+    };
+  }
 
-export const subVector = (vec1: Point, vec2: Point) => ({
-  x: vec1.x - vec2.x,
-  y: vec1.y - vec2.y
-});
+  return {
+    x: vec1.x + vec2.x,
+    y: vec1.y + vec2.y
+  };
+};
+
+export const subVector = (vec1: Point, vec2: Point | number) => {
+  if (typeof vec2 === 'number') {
+    return {
+      x: vec1.x - vec2,
+      y: vec1.y - vec2
+    };
+  }
+
+  return {
+    x: vec1.x - vec2.x,
+    y: vec1.y - vec2.y
+  };
+};
 
 export const mulVector = (vec: Point, val: Point | number) => {
   if (typeof val === 'number') {
@@ -59,4 +77,8 @@ export const normalizeVector = ({ x, y }: Point) => {
 
 export const setMagnitude = (vec: Point, speed: number) => {
   return mulVector(normalizeVector(vec), speed);
+};
+
+export const getMagnitude = (vec: Point) => {
+  return Math.sqrt(vec.x ** 2 + vec.y ** 2);
 };
