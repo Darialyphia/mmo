@@ -9,7 +9,7 @@ import {
 } from '@mmo/shared';
 import { GameMap, createMap } from '../mapgen';
 import { Player, isPlayer } from './player';
-import { PLAYER_FOV, SPATIAL_GRID_DIMENSIONS } from '../constants';
+import { SPATIAL_GRID_DIMENSIONS } from '../constants';
 import { GameEntity, hasGridItem, hasOrientation } from '../types';
 import { Monster } from './monster';
 
@@ -24,7 +24,8 @@ export const createContext = () => {
   const map = createMap();
   const entities = createIndexedArray<AnyEntity, {}, {}>([], {}, {})
     .addIndex('id', e => e.id)
-    .addIndex('gridItem', e => e.gridItem);
+    .addIndex('gridItem', e => e.gridItem)
+    .addGroup('brand', e => e.__brand);
   const grid = createSpatialHashGrid({
     dimensions: { w: SPATIAL_GRID_DIMENSIONS, h: SPATIAL_GRID_DIMENSIONS },
     bounds: {
@@ -44,7 +45,7 @@ export const getSnapshot = (context: GameContext): GameStateSnapshot => {
       const entities = context.grid
         .findNearbyRadius(
           { x: entity.gridItem.x, y: entity.gridItem.y },
-          PLAYER_FOV
+          entity.fov
         )
         .map(gridItem => {
           const entity = context.entities.getByIndex('gridItem', gridItem)!;
@@ -58,7 +59,7 @@ export const getSnapshot = (context: GameContext): GameStateSnapshot => {
           };
         })
         .filter(isDefined);
-      const cells = context.map.getFieldOfView(entity.gridItem, PLAYER_FOV);
+      const cells = context.map.getFieldOfView(entity.gridItem, entity.fov);
 
       return [entity.id, { entities, cells }];
     });

@@ -13,22 +13,23 @@ const MINIMAP_SIZE = Math.min(300, window.innerWidth / 4);
 
 // x axis is height, Y axis is temperature
 const COLORS = [
-  [0x6666ff, 0x00ffff, 0xffffff],
-  [0x6666ff, 0xffff00, 0x00ff00],
+  [0x6666ff, 0x22aabb, 0xffffff],
+  [0x6666ff, 0xffff00, 0x55bb55],
   [0x6666ff, 0xffff00, 0xff8800]
 ];
 export const createMiniMap = ({ app, meta }: CreateMiniMapOptions) => {
   const container = new Graphics();
+  container.zIndex = 2;
   container.lineStyle({ width: 1, color: 0xffffff });
   container.drawRect(0, 0, meta.width, meta.height);
 
-  const backdrop = new Graphics();
-  backdrop.clear();
-  backdrop.beginFill(0x0000);
-  backdrop.drawRect(0, 0, meta.width, meta.height);
+  const miniMap = new Graphics();
+  miniMap.clear();
+  miniMap.beginFill(0x0000);
+  miniMap.drawRect(0, 0, meta.width, meta.height);
 
   const scale = (1 * MINIMAP_SIZE) / meta.width;
-  container.addChild(backdrop);
+  container.addChild(miniMap);
   container.position.set(app.screen.width - MINIMAP_SIZE, 0);
   container.scale.set(scale, scale);
   app.stage.addChild(container);
@@ -43,8 +44,8 @@ export const createMiniMap = ({ app, meta }: CreateMiniMapOptions) => {
       snapshot.fieldOfView.forEach(cell => {
         if (drawnCells.has(getCellKey(cell.position))) return;
 
-        backdrop.beginFill(COLORS[cell.temperature]?.[cell.height] as number);
-        backdrop.drawRect(cell.position.x, cell.position.y, 1, 1);
+        miniMap.beginFill(COLORS[cell.temperature]?.[cell.height] as number);
+        miniMap.drawRect(cell.position.x, cell.position.y, 1, 1);
         drawnCells.add(getCellKey(cell.position));
       });
 

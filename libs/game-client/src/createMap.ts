@@ -30,6 +30,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const undecidedEdges = new Map<string, true>();
 
   const mapContainer = new PIXI.Container();
+  camera.container.addChild(mapContainer);
 
   const backdrop = new PIXI.Graphics();
   backdrop.beginFill(0x000000, 0.01);
@@ -177,7 +178,6 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   app.ticker.add(checkChunkEdges);
 
   return {
-    container: mapContainer,
     cleanup() {
       console.log('map cleanup');
     },

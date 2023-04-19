@@ -1,4 +1,4 @@
-import { Entity, GridItem, Point } from '@mmo/shared';
+import { Entity, GridItem, Nullable, Point } from '@mmo/shared';
 
 export type Directions = {
   up: boolean;
@@ -17,11 +17,25 @@ export type WithGridItem = { gridItem: GridItem };
 export const hasGridItem = (x: GameEntity): x is GameEntity & WithGridItem =>
   'gridItem' in x;
 
-export type WithVelocity = { velocity: Point };
-export const hasVelocity = (x: GameEntity): x is GameEntity & WithVelocity =>
-  'velocity' in x;
+export type WithMovement = { velocity: Point; speed: number };
+export const hasMovement = (x: GameEntity): x is GameEntity & WithMovement =>
+  'velocity' in x && 'speed' in x;
+
+export type WithFieldOfView = { fov: number };
+export const hasFieldOfView = (
+  x: GameEntity
+): x is GameEntity & WithFieldOfView => 'fov' in x;
 
 export type WithOrientation = { orientation: 'left' | 'right' };
 export const hasOrientation = (
   x: GameEntity
 ): x is GameEntity & WithOrientation => 'orientation' in x;
+
+export type WithSeeking = {
+  seeking: {
+    target: Nullable<GameEntity & WithGridItem>;
+    canSeek: (e: GameEntity & WithBrand<string>) => boolean;
+  };
+};
+export const hasSeeking = (x: GameEntity): x is GameEntity & WithSeeking =>
+  'seeking' in x;

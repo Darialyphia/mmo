@@ -13,7 +13,7 @@ import { Stage } from '@pixi/layers';
 import type { Socket } from 'socket.io-client';
 import { createControls } from './createControls';
 import { loadCharactersBundle } from './createAnimatedSprite';
-import { createEntityManager, getOrCreateSprite } from './createEntityManager';
+import { createEntityManager } from './createEntityManager';
 import { loadTilesets } from './caches/tileset';
 import { createMiniMap } from './createMinimap';
 
@@ -66,12 +66,12 @@ export const createGameClient = async ({
   const map = await createMap({ app, camera, meta });
   const entityManager = createEntityManager({ app, camera, meta });
   const controls = createControls();
+  const minimap = createMiniMap({ app, meta });
+
   controls.on('move', directions => {
     socket.emit('move', directions);
   });
-  camera.container.addChild(map.container);
   app.stage.addChild(camera.container);
-  const minimap = createMiniMap({ app, meta });
 
   let state = createGameState();
 
