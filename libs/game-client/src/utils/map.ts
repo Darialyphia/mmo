@@ -5,7 +5,8 @@ import {
   Keys,
   isDefined,
   Point,
-  GameMeta
+  GameMeta,
+  IndexedArray
 } from '@mmo/shared';
 import { Tilesets } from '../assets/tilesets';
 import { CELL_SIZE } from '../constants';
@@ -15,7 +16,7 @@ export const getCellKey = (pt: Point) => `${pt.x}:${pt.y}`;
 
 export const getNeighbors = (
   cell: MapCell,
-  map: Map<string, MapCell>,
+  cells: IndexedArray<MapCell, 'key', never>,
   meta: GameMeta
 ): Neighborhood => {
   const { position } = cell;
@@ -28,33 +29,57 @@ export const getNeighbors = (
     [
       isTopEdge && isLeftEdge
         ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y - 1 })),
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x - 1, y: position.y - 1 })
+          ),
       isTopEdge
         ? null
-        : map.get(getCellKey({ x: position.x, y: position.y - 1 })),
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x, y: position.y - 1 })
+          ),
       isTopEdge && isRightEdge
         ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y - 1 }))
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x + 1, y: position.y - 1 })
+          )
     ],
     [
       isLeftEdge
         ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y })),
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x - 1, y: position.y })
+          ),
       cell,
       isRightEdge
         ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y }))
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x + 1, y: position.y })
+          )
     ],
     [
       isBottomEdge && isLeftEdge
         ? null
-        : map.get(getCellKey({ x: position.x - 1, y: position.y + 1 })),
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x - 1, y: position.y + 1 })
+          ),
       isBottomEdge
         ? null
-        : map.get(getCellKey({ x: position.x, y: position.y + 1 })),
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x, y: position.y + 1 })
+          ),
       isBottomEdge && isRightEdge
         ? null
-        : map.get(getCellKey({ x: position.x + 1, y: position.y + 1 }))
+        : cells.getByIndex(
+            'key',
+            getCellKey({ x: position.x + 1, y: position.y + 1 })
+          )
     ]
   ];
 };

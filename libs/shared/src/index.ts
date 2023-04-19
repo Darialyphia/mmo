@@ -7,3 +7,4 @@ export * from './vectors';
 export * from './spatialHash';
 export * from './collisions';
 export * from './queue';
+export * from './indexedArray';

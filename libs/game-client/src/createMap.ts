@@ -4,7 +4,8 @@ import {
   type Point,
   type GameMeta,
   type MapCell,
-  clamp
+  clamp,
+  createIndexedArray
 } from '@mmo/shared';
 import { CELL_SIZE } from './constants';
 import type { Camera } from './createCamera';
@@ -21,8 +22,10 @@ export type CreateMapOptions = {
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const spriteCache = new Map<string, PIXI.Sprite>();
 
-  const cells: MapCell[] = [];
-  const cellsByKey = new Map<string, MapCell>();
+  const cells = createIndexedArray<MapCell, {}, {}>([], {}, {}).addIndex(
+    'key',
+    cell => getCellKey(cell.position)
+  );
   // The cells whose texture have been evaluated but information about surrounfing tiles was missing
   const undecidedEdges = new Map<string, true>();
 
@@ -66,7 +69,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   };
 
   const computeTexture = (cell: MapCell) => {
-    const neighbors = getNeighbors(cell, cellsByKey, meta);
+    const neighbors = getNeighbors(cell, cells, meta);
     const isUndecided = neighbors.some(row => row.includes(undefined));
     if (isUndecided) {
       undecidedEdges.set(getCellKey(cell.position), true);
@@ -152,7 +155,7 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     currentChunkContainer = new PIXI.Container();
     mapContainer.addChild(currentChunkContainer);
 
-    cells.forEach(drawCell);
+    cells.getList().forEach(drawCell);
   }, 100);
 
   const drawChunk = (center: Point, force?: boolean) => {
@@ -179,16 +182,15 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
       console.log('map cleanup');
     },
     onStateUpdate(snapshot: GameState) {
-      const count = cells.length;
+      const count = cells.getList().length;
 
       snapshot.fieldOfView.forEach(cell => {
         const key = getCellKey(cell.position);
-        if (cellsByKey.has(key)) return;
-        cellsByKey.set(key, cell);
-        cells.push(cell);
+        if (cells.has('key', key)) return;
+        cells.add(cell);
       });
 
-      if (cells.length !== count) {
+      if (cells.size !== count) {
         drawChunk(getCameraPosition(), true);
       }
     }

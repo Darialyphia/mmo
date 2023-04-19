@@ -28,9 +28,9 @@ export type PlayerMoveEvent = {
 
 export const onPlayerMovement = (
   { playerId, directions }: PlayerMoveEvent['payload'],
-  { entitiesLookup }: GameContext
+  { entities }: GameContext
 ) => {
-  const player = entitiesLookup.get(playerId) as Player;
+  const player = entities.getByIndex('id', playerId);
   if (!player) return;
 
   player.velocity = computeVelocity(directions);

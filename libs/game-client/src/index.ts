@@ -15,6 +15,7 @@ import { createControls } from './createControls';
 import { loadCharactersBundle } from './createAnimatedSprite';
 import { createEntityManager, getOrCreateSprite } from './createEntityManager';
 import { loadTilesets } from './caches/tileset';
+import { createMiniMap } from './createMinimap';
 
 PIXI.Container.defaultSortableChildren = true;
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
@@ -70,6 +71,7 @@ export const createGameClient = async ({
   });
   camera.container.addChild(map.container);
   app.stage.addChild(camera.container);
+  const minimap = createMiniMap({ app, meta });
 
   let state = createGameState();
 
@@ -87,6 +89,7 @@ export const createGameClient = async ({
       camera.onStateUpdate(state);
       entityManager.onStateUpdate(state, prevState);
       map.onStateUpdate(state);
+      minimap.onStateUpdate(state);
     },
     cleanup() {
       camera.cleanup();

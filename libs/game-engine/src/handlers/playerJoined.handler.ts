@@ -11,9 +11,7 @@ export const onPlayerJoined = (
   ctx: GameContext
 ): Player => {
   const player = createPlayer(playerId, ctx);
-  ctx.entities.push(player);
-  ctx.entitiesLookup.set(player.id, player);
-  ctx.gridLookup.set(player.gridItem, player);
+  ctx.entities.add(player);
 
   return player;
 };
