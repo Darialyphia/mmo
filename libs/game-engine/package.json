@@ -9,6 +9,7 @@
   "dependencies": {
     "@mmo/shared": "*",
     "astar-typescript": "^1.2.6",
+    "fast-memoize": "^2.5.2",
     "lodash-es": "^4.17.21",
     "open-simplex-noise": "^2.5.0",
     "typed-emitter": "^2.1.0"

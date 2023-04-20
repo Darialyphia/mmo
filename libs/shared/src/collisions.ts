@@ -1,4 +1,4 @@
-import { dist } from './math';
+import { dist, fastDistCheck } from './math';
 import type { Circle, Point, Rectangle } from './types';
 
 export const pointRectCollision = (point: Point, rect: Rectangle) =>
@@ -8,7 +8,7 @@ export const pointRectCollision = (point: Point, rect: Rectangle) =>
   point.y <= rect.y + rect.h;
 
 export const pointCircleCollision = (point: Point, circle: Circle) =>
-  dist(point, circle) <= circle.r;
+  fastDistCheck(point, circle, circle.r);
 
 export const circleRectCollision = (circle: Circle, rect: Rectangle) => {
   const distX = Math.abs(circle.x - rect.x - rect.w / 2);

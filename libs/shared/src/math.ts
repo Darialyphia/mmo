@@ -58,8 +58,15 @@ export const lerp = (num: number, [min, max]: [number, number]) => {
 };
 
 export const dist = (p1: Point, p2: Point) => {
+  const diffX = p2.x - p1.x;
+  const diffY = p2.y - p1.y;
+
+  return Math.sqrt(diffX ** 2 + diffY ** 2);
+};
+
+export const fastDistCheck = (p1: Point, p2: Point, limit: number) => {
   const diffX = Math.abs(p2.x - p1.x);
   const diffY = Math.abs(p2.y - p1.y);
 
-  return Math.sqrt(diffX ** 2 + diffY ** 2);
+  return diffX ** 2 + diffY ** 2 <= limit ** 2;
 };

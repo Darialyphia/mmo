@@ -7,7 +7,8 @@ import {
   Circle,
   Boundaries,
   subVector,
-  addVector
+  addVector,
+  fastDistCheck
 } from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
 import { CHUNK_SIZE, HEIGHT, WIDTH } from './constants';
@@ -138,10 +139,11 @@ const getCellsInside = (
     for (let cellX = min.x; cellX <= max.x; cellX++) {
       const isVisible =
         !fov ||
-        dist(
+        fastDistCheck(
           { x: Math.round(fov.x), y: Math.round(fov.y) },
-          { x: cellX, y: cellY }
-        ) <= fov.r;
+          { x: cellX, y: cellY },
+          fov.r
+        );
 
       if (isVisible) {
         cells.push(getCellAt({ x: cellX, y: cellY }, seed));

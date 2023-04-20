@@ -6,7 +6,6 @@ import {
   createMatrix,
   dist,
   isDefined,
-  mulVector,
   setMagnitude,
   subVector
 } from '@mmo/shared';
@@ -21,7 +20,8 @@ import {
   hasFieldOfView,
   hasGridItem,
   hasMovement,
-  hasSeeking
+  hasSeeking,
+  hasSleep
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
 
@@ -38,8 +38,6 @@ const isSeeker = (x: GameEntity): x is GameEntity & Seeker =>
 
 const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
   hasGridItem(x);
-
-const ASTAR_SCALE_FACTOR = 2;
 
 export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
   const stopSeeking = (entity: Seeker) => {
@@ -82,37 +80,31 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
 
     const rows = createMatrix<number>(
       {
-        w: ASTAR_SCALE_FACTOR * (1 + (bounds.max.x - bounds.min.x)),
-        h: ASTAR_SCALE_FACTOR * (1 + (bounds.max.y - bounds.min.y))
+        w: 1 + (bounds.max.x - bounds.min.x),
+        h: 1 + (bounds.max.y - bounds.min.y)
       },
       () => 1
     );
 
-    for (let i = 0; i < ASTAR_SCALE_FACTOR; i++) {
-      for (let j = 0; j < ASTAR_SCALE_FACTOR; j++) {
-        cells.forEach(cell => {
-          const y = ASTAR_SCALE_FACTOR * (cell.position.y - bounds.min.y) + i;
-          const x = ASTAR_SCALE_FACTOR * (cell.position.x - bounds.min.x) + j;
-          rows[y][x] = cell.height === 0 ? 1 : 0;
-        });
-      }
-    }
+    cells.forEach(cell => {
+      const y = cell.position.y - bounds.min.y;
+      const x = cell.position.x - bounds.min.x;
+      rows[y][x] = cell.height === 0 ? 1 : 0;
+    });
 
     return { bounds, rows };
   };
 
   const scaleVecToBounds = (vec: Point, bounds: Boundaries<Point>) =>
-    mulVector(subVector(vec, bounds.min), ASTAR_SCALE_FACTOR);
+    subVector(vec, bounds.min);
 
   const mapAstarPath = (path: number[][], bounds: Boundaries<Point>) =>
-    path.map(([x, y]) =>
-      addVector(
-        { x: x / ASTAR_SCALE_FACTOR, y: y / ASTAR_SCALE_FACTOR },
-        bounds.min
-      )
-    );
+    path.map(([x, y]) => addVector({ x, y }, bounds.min));
 
-  const computeVelocity = (seeker: Seeker, target: Seekable) => {
+  const computeVelocity = (seeker: Seeker) => {
+    const target = entities.getByIndex('id', seeker.seeking.target);
+    if (!target) return seeker.velocity;
+
     const { bounds, rows } = getAstarRows(seeker);
 
     const start = {
@@ -131,7 +123,7 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
         diagonalAllowed: true,
         includeStartNode: false,
         includeEndNode: true,
-        weight: 1
+        weight: 0.2
       }).findPath(
         scaleVecToBounds(start, bounds),
         scaleVecToBounds(goal, bounds)
@@ -146,8 +138,8 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
         subVector(
           addVector(
             {
-              x: path[0][0] / ASTAR_SCALE_FACTOR,
-              y: path[0][1] / ASTAR_SCALE_FACTOR
+              x: path[0][0],
+              y: path[0][1]
             },
             bounds.min
           ),
@@ -164,26 +156,29 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
   return () => {
     entities.getList().forEach(entity => {
       if (!isSeeker(entity)) return;
+      if (hasSleep(entity) && entity.sleep.isAsleep) return stopSeeking(entity);
+
       if (!entity.seeking.target) {
         entity.seeking.target = findTarget(entity);
+      } else {
+        const target = entities.getByIndex('id', entity.seeking.target);
+        if (!target) {
+          return stopSeeking(entity);
+        }
+        const canSeek = isSeekable(target) && entity.seeking.canSeek(target);
+        if (!canSeek) {
+          return stopSeeking(entity);
+        }
+
+        const isOutOfReach =
+          dist(entity.gridItem, target.gridItem) > entity.fov;
+
+        if (isOutOfReach) {
+          return stopSeeking(entity);
+        }
       }
 
-      const target = entities.getByIndex('id', entity.seeking.target);
-      if (!target) {
-        return stopSeeking(entity);
-      }
-
-      const canSeek = isSeekable(target) && entity.seeking.canSeek(target);
-      if (!canSeek) {
-        return stopSeeking(entity);
-      }
-
-      const isOutOfReach = dist(entity.gridItem, target.gridItem) > entity.fov;
-      if (isOutOfReach) {
-        return stopSeeking(entity);
-      }
-
-      entity.velocity = computeVelocity(entity, target);
+      entity.velocity = computeVelocity(entity);
     });
   };
 };

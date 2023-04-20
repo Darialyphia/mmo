@@ -118,17 +118,17 @@ export const createEntityManager = ({
           camera.container.addChild(sprite);
         }
 
-        if (entity.data.path) {
-          const g = new PIXI.Graphics();
-          debugContainer.addChild(g);
-          g.lineStyle({ width: 1, color: 0xffff00 });
-          const start = coordsToPixels(entity.data.position);
-          g.moveTo(start.x, start.y);
-          entity.data.path.forEach(point => {
-            const { x, y } = coordsToPixels(point);
-            g.lineTo(x, y);
-          });
-        }
+        // if (entity.data.path) {
+        //   const g = new PIXI.Graphics();
+        //   debugContainer.addChild(g);
+        //   g.lineStyle({ width: 1, color: 0xffff00 });
+        //   const start = coordsToPixels(entity.data.position);
+        //   g.moveTo(start.x, start.y);
+        //   entity.data.path.forEach(point => {
+        //     const { x, y } = coordsToPixels(point);
+        //     g.lineTo(x, y);
+        //   });
+        // }
       });
     }
   };

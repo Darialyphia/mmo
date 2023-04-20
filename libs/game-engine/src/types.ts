@@ -40,3 +40,13 @@ export type WithSeeking = {
 };
 export const hasSeeking = (x: GameEntity): x is GameEntity & WithSeeking =>
   'seeking' in x;
+
+export type WithSleep = {
+  sleep: {
+    isAsleep: boolean;
+    sleepDistance: number;
+  };
+};
+
+export const hasSleep = (x: GameEntity): x is GameEntity & WithSleep =>
+  'sleep' in x;

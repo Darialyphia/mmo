@@ -6,7 +6,8 @@ import {
   WithFieldOfView,
   WithGridItem,
   WithMovement,
-  WithSeeking
+  WithSeeking,
+  WithSleep
 } from '../types';
 import { nanoid } from 'nanoid';
 import { MONSTER_FOV, MONSTER_SPEED } from '../constants';
@@ -16,7 +17,8 @@ export type Monster = GameEntity &
   WithGridItem &
   WithMovement &
   WithFieldOfView &
-  WithSeeking;
+  WithSeeking &
+  WithSleep;
 
 export const isMonster = (x: GameEntity): x is Monster =>
   '__brand' in x && x.__brand === 'monster';
@@ -38,6 +40,10 @@ export const createMonster = ({ map, grid }: GameContext) => {
     seeking: {
       target: null,
       canSeek: e => e.__brand === 'player'
+    },
+    sleep: {
+      isAsleep: false,
+      sleepDistance: MONSTER_FOV * 1.25
     }
   };
 
