@@ -43,11 +43,6 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
   }) => {
     const initialPosition = { x: entity.gridItem.x, y: entity.gridItem.y };
 
-    const isHorizontal = entity.gridItem.x !== cellAtDesiredPosition.position.x;
-    const isVertical = entity.gridItem.y !== cellAtDesiredPosition.position.y;
-    const isDiagonal = isHorizontal && isVertical;
-    if (!isDiagonal) return initialPosition;
-
     const verticalOnlyPos = computePosition(entity, { x: 0, y: force.y }, dt);
     let cell = map.getCellAt(verticalOnlyPos);
     if (isWalkable(cell)) {
