@@ -1,5 +1,6 @@
 export const TICK_RATE = 15;
-export const MAX_MONSTERS = 100;
+export const MAX_MONSTERS = 10;
+export const MAX_OBSTACLES = 50;
 export const MONSTER_SPAWN_THRESHOLD = 200;
 
 // map constants

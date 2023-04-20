@@ -24,6 +24,7 @@ import {
   hasSleep
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
+import { isWalkable } from '../utils/map';
 
 type Seeker = GameEntity &
   WithGridItem &
@@ -39,7 +40,8 @@ const isSeeker = (x: GameEntity): x is GameEntity & Seeker =>
 const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
   hasGridItem(x);
 
-export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
+export const createSeekingSystem = (ctx: GameContext) => {
+  const { entities, map, grid } = ctx;
   const stopSeeking = (entity: Seeker) => {
     entity.seeking.target = null;
     entity.velocity = { x: 0, y: 0 };
@@ -89,7 +91,7 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
     cells.forEach(cell => {
       const y = cell.position.y - bounds.min.y;
       const x = cell.position.x - bounds.min.x;
-      rows[y][x] = cell.height === 0 ? 1 : 0;
+      rows[y][x] = isWalkable(cell, ctx) ? 0 : 1;
     });
 
     return { bounds, rows };

@@ -7,6 +7,12 @@ export type CharacterResource = {
   meta: ISpritesheetData;
 };
 
+export type ObstacleResource = {
+  url: string;
+  asepriteMeta: AsepriteSheet;
+  meta: ISpritesheetData;
+};
+
 export type TilesetResource = {
   url: string;
   asepriteMeta: AsepriteSheet;

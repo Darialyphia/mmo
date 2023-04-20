@@ -18,12 +18,13 @@ export const spriteMap = new Map<string, PIXI.Container>();
 const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
 
-  const sprite = createAnimatedSprite(
-    entity.spriteId as Keys<Characters>,
-    'idle'
-  );
+  const sprite = createAnimatedSprite(entity.spriteId, 'idle');
   container.addChild(sprite);
 
+  // const g = new PIXI.Graphics();
+  // g.beginFill(0xff0000);
+  // g.drawCircle(0, 0, 5);
+  // container.addChild(g);
   return container;
 };
 
@@ -118,17 +119,17 @@ export const createEntityManager = ({
           camera.container.addChild(sprite);
         }
 
-        // if (entity.data.path) {
-        //   const g = new PIXI.Graphics();
-        //   debugContainer.addChild(g);
-        //   g.lineStyle({ width: 1, color: 0xffff00 });
-        //   const start = coordsToPixels(entity.data.position);
-        //   g.moveTo(start.x, start.y);
-        //   entity.data.path.forEach(point => {
-        //     const { x, y } = coordsToPixels(point);
-        //     g.lineTo(x, y);
-        //   });
-        // }
+        if (entity.data.path) {
+          const g = new PIXI.Graphics();
+          debugContainer.addChild(g);
+          g.lineStyle({ width: 1, color: 0xffff00 });
+          const start = coordsToPixels(entity.data.position);
+          g.moveTo(start.x, start.y);
+          entity.data.path.forEach(point => {
+            const { x, y } = coordsToPixels(point);
+            g.lineTo(x, y);
+          });
+        }
       });
     }
   };

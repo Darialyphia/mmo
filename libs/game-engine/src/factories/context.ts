@@ -12,6 +12,7 @@ import { Player, isPlayer } from './player';
 import { SPATIAL_GRID_DIMENSIONS } from '../constants';
 import { GameEntity, hasGridItem, hasOrientation } from '../types';
 import { Monster } from './monster';
+import { Obstacle } from './obstacle';
 
 export type GameContext = ReturnType<typeof createContext>;
 
@@ -19,7 +20,7 @@ export type GameStateSnapshot = {
   fieldOfView: Record<string, { cells: MapCell[]; entities: Entity[] }>;
 };
 
-export type AnyEntity = Player | Monster;
+export type AnyEntity = Player | Monster | Obstacle;
 
 export const createContext = () => {
   const map = createMap();
@@ -54,6 +55,7 @@ export const getSnapshot = (context: GameContext): GameStateSnapshot => {
 
           return {
             id: entity.id,
+            brand: entity.__brand,
             spriteId: entity.spriteId,
             orientation: entity.orientation,
             path: entity.path,

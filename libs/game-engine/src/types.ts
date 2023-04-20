@@ -7,7 +7,7 @@ export type Directions = {
   right: boolean;
 };
 
-export type GameEntity = Omit<Entity, 'position'>;
+export type GameEntity = Omit<Entity, 'position' | 'brand'>;
 export type GameEntityId = string;
 
 export type WithBrand<T extends string> = { __brand: T };

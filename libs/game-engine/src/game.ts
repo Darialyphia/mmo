@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import type { Nullable } from '@mmo/shared';
-import { TICK_RATE } from './constants';
+import { MAX_OBSTACLES, TICK_RATE } from './constants';
 import { createEventQueue, type GameEvent } from './factories/eventQueue';
 import { createSystems } from './factories/systems';
 import {
@@ -9,6 +9,7 @@ import {
   createContext,
   getSnapshot
 } from './factories/context';
+import { createObstacle } from './factories/obstacle';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void | Promise<void>;
@@ -19,6 +20,10 @@ export const createGame = () => {
   const emitter = new EventEmitter() as TypedEmitter<GameEvents>;
   const queue = createEventQueue(context);
   const systems = createSystems(context);
+
+  for (let i = 0; i < MAX_OBSTACLES; i++) {
+    context.entities.add(createObstacle(context));
+  }
 
   let prevTick = 0;
   let interval: Nullable<ReturnType<typeof setInterval>>;

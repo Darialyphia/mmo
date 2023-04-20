@@ -10,10 +10,14 @@ import {
 } from '@mmo/shared';
 import { GameContext } from '../factories/context';
 import { WithGridItem, WithMovement, hasGridItem, hasMovement } from '../types';
+import { isObstacle } from '../factories/obstacle';
+import { isWalkable } from '../utils/map';
 
 const ENTITY_SEPARATION = 0.5;
 type Movable = WithGridItem & WithMovement;
-export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
+export const createMovementSystem = (ctx: GameContext) => {
+  const { entities, map, grid } = ctx;
+
   const computePosition = (entity: Movable, force: Point, dt: number) =>
     addVector(
       { x: entity.gridItem.x, y: entity.gridItem.y },
@@ -27,8 +31,6 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
     const diff = subVector(entity.gridItem, repellent);
     return addVector(force, setMagnitude(diff, d));
   };
-
-  const isWalkable = (cell: MapCell) => cell.height !== 0;
 
   const handleObstacles = ({
     entity,
@@ -45,13 +47,13 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
 
     const verticalOnlyPos = computePosition(entity, { x: 0, y: force.y }, dt);
     let cell = map.getCellAt(verticalOnlyPos);
-    if (isWalkable(cell)) {
+    if (isWalkable(cell, ctx)) {
       return verticalOnlyPos;
     }
 
     const horizontalOnlyPos = computePosition(entity, { x: force.x, y: 0 }, dt);
     cell = map.getCellAt(horizontalOnlyPos);
-    if (isWalkable(cell)) {
+    if (isWalkable(cell, ctx)) {
       return horizontalOnlyPos;
     }
 
@@ -78,7 +80,7 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
       let newPos = computePosition(entity, force, dt);
       const cell = map.getCellAt(newPos);
 
-      if (!isWalkable(cell)) {
+      if (!isWalkable(cell, ctx)) {
         newPos = handleObstacles({
           entity,
           force,
