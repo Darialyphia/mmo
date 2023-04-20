@@ -1,4 +1,5 @@
 import {
+  MapCell,
   Point,
   addVector,
   clamp,
@@ -11,13 +12,9 @@ import { GameContext } from '../factories/context';
 import { WithGridItem, WithMovement, hasGridItem, hasMovement } from '../types';
 
 const ENTITY_SEPARATION = 0.5;
-
+type Movable = WithGridItem & WithMovement;
 export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
-  const computePosition = (
-    entity: WithGridItem & WithMovement,
-    force: Point,
-    dt: number
-  ) =>
+  const computePosition = (entity: Movable, force: Point, dt: number) =>
     addVector(
       { x: entity.gridItem.x, y: entity.gridItem.y },
       setMagnitude(force, (entity.speed * dt) / 1000)
@@ -29,6 +26,41 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
 
     const diff = subVector(entity.gridItem, repellent);
     return addVector(force, setMagnitude(diff, d));
+  };
+
+  const isWalkable = (cell: MapCell) => cell.height !== 0;
+
+  const handleObstacles = ({
+    entity,
+    cellAtDesiredPosition,
+    force,
+    dt
+  }: {
+    entity: Movable;
+    cellAtDesiredPosition: MapCell;
+    force: Point;
+    dt: number;
+  }) => {
+    const initialPosition = { x: entity.gridItem.x, y: entity.gridItem.y };
+
+    const isHorizontal = entity.gridItem.x !== cellAtDesiredPosition.position.x;
+    const isVertical = entity.gridItem.y !== cellAtDesiredPosition.position.y;
+    const isDiagonal = isHorizontal && isVertical;
+    if (!isDiagonal) return initialPosition;
+
+    const verticalOnlyPos = computePosition(entity, { x: 0, y: force.y }, dt);
+    let cell = map.getCellAt(verticalOnlyPos);
+    if (isWalkable(cell)) {
+      return verticalOnlyPos;
+    }
+
+    const horizontalOnlyPos = computePosition(entity, { x: force.x, y: 0 }, dt);
+    cell = map.getCellAt(horizontalOnlyPos);
+    if (isWalkable(cell)) {
+      return horizontalOnlyPos;
+    }
+
+    return initialPosition;
   };
 
   return (dt: number) => {
@@ -51,7 +83,14 @@ export const createMovementSystem = ({ entities, map, grid }: GameContext) => {
       let newPos = computePosition(entity, force, dt);
       const cell = map.getCellAt(newPos);
 
-      if (cell.height === 0) return;
+      if (!isWalkable(cell)) {
+        newPos = handleObstacles({
+          entity,
+          force,
+          dt,
+          cellAtDesiredPosition: cell
+        });
+      }
 
       entity.gridItem.x = clamp(newPos.x, 0, map.width - 1);
       entity.gridItem.y = clamp(newPos.y, 0, map.height - 1);

@@ -19,7 +19,8 @@ export type GameStateSnapshot = {
   fieldOfView: Record<string, { cells: MapCell[]; entities: Entity[] }>;
 };
 
-type AnyEntity = Player | Monster;
+export type AnyEntity = Player | Monster;
+
 export const createContext = () => {
   const map = createMap();
   const entities = createIndexedArray<AnyEntity, {}, {}>([], {}, {})

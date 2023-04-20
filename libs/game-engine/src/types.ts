@@ -8,6 +8,7 @@ export type Directions = {
 };
 
 export type GameEntity = Omit<Entity, 'position'>;
+export type GameEntityId = string;
 
 export type WithBrand<T extends string> = { __brand: T };
 export const hasBrand = (x: GameEntity): x is GameEntity & WithBrand<string> =>
@@ -33,7 +34,7 @@ export const hasOrientation = (
 
 export type WithSeeking = {
   seeking: {
-    target: Nullable<GameEntity & WithGridItem>;
+    target: Nullable<GameEntityId>;
     canSeek: (e: GameEntity & WithBrand<string>) => boolean;
   };
 };

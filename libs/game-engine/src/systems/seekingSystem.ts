@@ -1,4 +1,7 @@
 import {
+  Boundaries,
+  Nullable,
+  Point,
   addVector,
   createMatrix,
   dist,
@@ -10,6 +13,7 @@ import {
 import { GameContext } from '../factories/context';
 import {
   GameEntity,
+  GameEntityId,
   WithFieldOfView,
   WithGridItem,
   WithMovement,
@@ -26,18 +30,25 @@ type Seeker = GameEntity &
   WithFieldOfView &
   WithSeeking &
   WithMovement;
+
+type Seekable = GameEntity & WithGridItem;
+
 const isSeeker = (x: GameEntity): x is GameEntity & Seeker =>
   hasGridItem(x) && hasFieldOfView(x) && hasSeeking(x) && hasMovement(x);
 
-const SCALE_FACTOR = 2;
+const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
+  hasGridItem(x);
+
+const ASTAR_SCALE_FACTOR = 2;
 
 export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
   const stopSeeking = (entity: Seeker) => {
     entity.seeking.target = null;
     entity.velocity = { x: 0, y: 0 };
+    entity.path = undefined;
   };
 
-  const findTarget = (seeker: Seeker) => {
+  const findTarget = (seeker: Seeker): Nullable<GameEntityId> => {
     const seekable = grid
       .findNearbyRadius(
         { x: seeker.gridItem.x, y: seeker.gridItem.y },
@@ -51,13 +62,10 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
           dist(b.gridItem, seeker.gridItem) - dist(a.gridItem, seeker.gridItem)
       );
 
-    return seekable[0];
+    return seekable[0]?.id;
   };
 
-  const computeVelocity = (seeker: Seeker) => {
-    if (!seeker.seeking.target) return seeker.velocity;
-    const { target } = seeker.seeking;
-
+  const getAstarRows = (seeker: Seeker) => {
     const cells = map.getFieldOfView(seeker.gridItem, seeker.fov);
     const xPositions = cells.map(c => c.position.x);
     const yPositions = cells.map(c => c.position.y);
@@ -74,42 +82,47 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
 
     const rows = createMatrix<number>(
       {
-        w: SCALE_FACTOR * (1 + (bounds.max.x - bounds.min.x)),
-        h: SCALE_FACTOR * (1 + (bounds.max.y - bounds.min.y))
+        w: ASTAR_SCALE_FACTOR * (1 + (bounds.max.x - bounds.min.x)),
+        h: ASTAR_SCALE_FACTOR * (1 + (bounds.max.y - bounds.min.y))
       },
       () => 1
     );
 
-    for (let i = 0; i < SCALE_FACTOR; i++) {
-      for (let j = 0; j < SCALE_FACTOR; j++) {
+    for (let i = 0; i < ASTAR_SCALE_FACTOR; i++) {
+      for (let j = 0; j < ASTAR_SCALE_FACTOR; j++) {
         cells.forEach(cell => {
-          const y = SCALE_FACTOR * (cell.position.y - bounds.min.y) + i;
-          const x = SCALE_FACTOR * (cell.position.x - bounds.min.x) + j;
+          const y = ASTAR_SCALE_FACTOR * (cell.position.y - bounds.min.y) + i;
+          const x = ASTAR_SCALE_FACTOR * (cell.position.x - bounds.min.x) + j;
           rows[y][x] = cell.height === 0 ? 1 : 0;
         });
       }
     }
 
-    const start = mulVector(
-      subVector(
-        {
-          x: Math.round(seeker.gridItem.x),
-          y: Math.round(seeker.gridItem.y)
-        },
+    return { bounds, rows };
+  };
+
+  const scaleVecToBounds = (vec: Point, bounds: Boundaries<Point>) =>
+    mulVector(subVector(vec, bounds.min), ASTAR_SCALE_FACTOR);
+
+  const mapAstarPath = (path: number[][], bounds: Boundaries<Point>) =>
+    path.map(([x, y]) =>
+      addVector(
+        { x: x / ASTAR_SCALE_FACTOR, y: y / ASTAR_SCALE_FACTOR },
         bounds.min
-      ),
-      SCALE_FACTOR
+      )
     );
-    const goal = mulVector(
-      subVector(
-        {
-          x: Math.round(target.gridItem.x),
-          y: Math.round(target.gridItem.y)
-        },
-        bounds.min
-      ),
-      SCALE_FACTOR
-    );
+
+  const computeVelocity = (seeker: Seeker, target: Seekable) => {
+    const { bounds, rows } = getAstarRows(seeker);
+
+    const start = {
+      x: Math.round(seeker.gridItem.x),
+      y: Math.round(seeker.gridItem.y)
+    };
+    const goal = {
+      x: Math.round(target.gridItem.x),
+      y: Math.round(target.gridItem.y)
+    };
     try {
       const path = new AStarFinder({
         grid: {
@@ -119,23 +132,31 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
         includeStartNode: false,
         includeEndNode: true,
         weight: 1
-      }).findPath(start, goal);
-
-      seeker.path = path.map(([x, y]) =>
-        addVector({ x: x / SCALE_FACTOR, y: y / SCALE_FACTOR }, bounds.min)
+      }).findPath(
+        scaleVecToBounds(start, bounds),
+        scaleVecToBounds(goal, bounds)
       );
+
+      seeker.path = mapAstarPath(path, bounds);
 
       if (!path.length) return { x: 0, y: 0 };
-      const targetVec = addVector(
-        { x: path[0][0] / SCALE_FACTOR, y: path[0][1] / SCALE_FACTOR },
-        bounds.min
-      );
 
-      return setMagnitude(
-        addVector(seeker.velocity, subVector(targetVec, seeker.gridItem)),
-        1
+      const force = addVector(
+        seeker.velocity,
+        subVector(
+          addVector(
+            {
+              x: path[0][0] / ASTAR_SCALE_FACTOR,
+              y: path[0][1] / ASTAR_SCALE_FACTOR
+            },
+            bounds.min
+          ),
+          seeker.gridItem
+        )
       );
+      return setMagnitude(force, 1);
     } catch {
+      console.log(`pathfinding error for entity ${seeker.id}, skipping.`);
       return seeker.velocity;
     }
   };
@@ -147,22 +168,22 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
         entity.seeking.target = findTarget(entity);
       }
 
-      if (
-        !entity.seeking.target ||
-        !entities.has('id', entity.seeking.target.id)
-      ) {
+      const target = entities.getByIndex('id', entity.seeking.target);
+      if (!target) {
         return stopSeeking(entity);
       }
 
-      const isOutOfReach =
-        dist(entity.gridItem, entity.seeking.target.gridItem) > entity.fov;
-      const isSeekable = entity.seeking.canSeek(entity.seeking.target as any);
-
-      if (isOutOfReach || !isSeekable) {
+      const canSeek = isSeekable(target) && entity.seeking.canSeek(target);
+      if (!canSeek) {
         return stopSeeking(entity);
       }
 
-      entity.velocity = computeVelocity(entity);
+      const isOutOfReach = dist(entity.gridItem, target.gridItem) > entity.fov;
+      if (isOutOfReach) {
+        return stopSeeking(entity);
+      }
+
+      entity.velocity = computeVelocity(entity, target);
     });
   };
 };
