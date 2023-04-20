@@ -156,7 +156,7 @@ export const createSeekingSystem = ({ entities, map, grid }: GameContext) => {
       );
       return setMagnitude(force, 1);
     } catch {
-      console.log(`pathfinding error for entity ${seeker.id}, skipping.`);
+      // console.log(`pathfinding error for entity ${seeker.id}, skipping.`);
       return seeker.velocity;
     }
   };
