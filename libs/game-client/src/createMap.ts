@@ -148,6 +148,11 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     currentChunkContainer.addChild(tileContainer);
 
     tileContainer.addChild(sprite);
+    const g = new PIXI.Graphics();
+    g.lineStyle({ width: 0.5, color: cell.height === 0 ? 0xff0000 : 0x00ff00 });
+    g.drawRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
+    // g.position.set(-CELL_SIZE / 2, -CELL_SIZE / 2);
+    tileContainer.addChild(g);
   };
 
   const drawCells = throttle(() => {

@@ -34,12 +34,10 @@ export const createMovementSystem = (ctx: GameContext) => {
 
   const handleObstacles = ({
     entity,
-    cellAtDesiredPosition,
     force,
     dt
   }: {
     entity: Movable;
-    cellAtDesiredPosition: MapCell;
     force: Point;
     dt: number;
   }) => {
@@ -85,8 +83,7 @@ export const createMovementSystem = (ctx: GameContext) => {
         newPos = handleObstacles({
           entity,
           force,
-          dt,
-          cellAtDesiredPosition: cell
+          dt
         });
       }
 

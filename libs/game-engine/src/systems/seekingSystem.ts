@@ -159,7 +159,7 @@ export const createSeekingSystem = (ctx: GameContext) => {
     }
   };
 
-  const getSeekers = entities.createFilter<Seeker>('seekers', isSeeker);
+  const getSeekers = entities.createFilter<Seeker>(isSeeker);
 
   return () => {
     getSeekers().forEach(entity => {

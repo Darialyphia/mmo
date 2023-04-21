@@ -39,12 +39,15 @@ export const createContext = () => {
   return { map, entities, grid };
 };
 
-export const getSnapshot = (context: GameContext): GameStateSnapshot => {
+export const getSnapshot = (
+  context: GameContext,
+  getPlayers: () => Player[]
+): GameStateSnapshot => {
   const entries = context.entities
     .getList()
     .filter(isPlayer)
     .map(entity => {
-      const entities = context.grid
+      const entities: Entity[] = context.grid
         .findNearbyRadius(
           { x: entity.gridItem.x, y: entity.gridItem.y },
           entity.fov
@@ -59,7 +62,8 @@ export const getSnapshot = (context: GameContext): GameStateSnapshot => {
             spriteId: entity.spriteId,
             orientation: entity.orientation,
             path: entity.path,
-            position: { x: entity.gridItem.x, y: entity.gridItem.y }
+            position: { x: entity.gridItem.x, y: entity.gridItem.y },
+            size: { w: entity.gridItem.w, h: entity.gridItem.h }
           };
         })
         .filter(isDefined);

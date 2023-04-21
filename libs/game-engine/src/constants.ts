@@ -1,5 +1,5 @@
 export const TICK_RATE = 15;
-export const MAX_MONSTERS = 50;
+export const MAX_MONSTERS = 0;
 export const MAX_OBSTACLES = 100;
 export const MONSTER_SPAWN_THRESHOLD = 200;
 

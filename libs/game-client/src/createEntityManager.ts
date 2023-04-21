@@ -5,13 +5,14 @@ import {
   type Nullable,
   type Entity,
   type Point,
-  GameMeta
+  GameMeta,
+  subVector
 } from '@mmo/shared';
 import { createAnimatedSprite } from './createAnimatedSprite';
-import { Characters } from './assets/characters';
 import { Camera } from './createCamera';
 import { GameState } from '.';
 import { coordsToPixels, interpolateEntity } from './utils';
+import { CELL_SIZE } from './constants';
 
 export const spriteMap = new Map<string, PIXI.Container>();
 
@@ -19,13 +20,31 @@ const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
 
   const sprite = createAnimatedSprite(entity.spriteId, 'idle');
+
+  const spriteSize = {
+    x: sprite.texture.orig.width / CELL_SIZE,
+    y: sprite.texture.orig.height / CELL_SIZE
+  };
+  const entitySize = {
+    x: entity.size.w * 2,
+    y: entity.size.h * 2
+  };
+  const { texture } = sprite;
+
+  const size = {
+    x: entity.size.w * CELL_SIZE,
+    y: entity.size.h * CELL_SIZE
+  };
+  const diff = {
+    x: CELL_SIZE / 2 + (texture.width - size.x * 2),
+    y: CELL_SIZE / 2 + (texture.height - size.y * 2)
+  };
+
+  sprite.position.set(-diff.x, -diff.y);
+
   container.addChild(sprite);
   container.cullable = true;
 
-  // const g = new PIXI.Graphics();
-  // g.beginFill(0xff0000);
-  // g.drawCircle(0, 0, 5);
-  // container.addChild(g);
   return container;
 };
 
@@ -58,8 +77,8 @@ export const createEntityManager = ({
   let entities: ManagerEntity[] = [];
 
   const debugContainer = new PIXI.Container();
+  debugContainer.zIndex = meta.height + 1;
 
-  debugContainer.zIndex = 10;
   camera.container.addChild(debugContainer);
 
   const interpolateEntities = () => {
@@ -81,7 +100,12 @@ export const createEntityManager = ({
           )
         : entity.data.position;
 
-      const toPixels = coordsToPixels(position);
+      const toPixels = coordsToPixels(
+        subVector(position, {
+          x: entity.data.size.w / 2,
+          y: entity.data.size.h / 2
+        })
+      );
       sprite.position.set(toPixels.x, toPixels.y);
     });
   };
@@ -116,11 +140,25 @@ export const createEntityManager = ({
 
       entities.forEach(entity => {
         const sprite = getOrCreateSprite(entity.data);
-        sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
+        // sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
         sprite.zIndex = entity.data.position.y;
         if (camera.container.children.indexOf(sprite) < 0) {
           camera.container.addChild(sprite);
         }
+
+        const box = new PIXI.Graphics();
+        const pos = coordsToPixels(entity.data.position);
+
+        box.lineStyle({ width: 1, color: 0xffff00 });
+        box.beginFill(0xffff00, 0.5);
+        box.drawRect(
+          pos.x - CELL_SIZE / 2,
+          pos.y - CELL_SIZE / 2,
+          entity.data.size.w * CELL_SIZE,
+          entity.data.size.h * CELL_SIZE
+        );
+
+        debugContainer.addChild(box);
 
         if (entity.data.path) {
           const g = new PIXI.Graphics();

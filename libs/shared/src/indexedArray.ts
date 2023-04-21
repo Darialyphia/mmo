@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid';
+
 type Index<TItem> = {
   key: (el: TItem) => string | number;
   items: Map<any, TItem>;
@@ -42,10 +44,7 @@ export type IndexedArray<
     getKey: (el: TItem) => any
   ) => IndexedArray<TItem, TIndex, TGroup | T>;
 
-  createFilter: <T = TItem>(
-    name: string,
-    predicate: (el: TItem) => boolean
-  ) => () => T[];
+  createFilter: <T = TItem>(predicate: (el: TItem) => boolean) => () => T[];
 };
 
 const internalCreateIndexedArray = <
@@ -186,18 +185,21 @@ const internalCreateIndexedArray = <
       });
     },
 
-    createFilter(name, predicate) {
-      if (filters[name])
-        throw new Error(`IndexedArray: filter ${name} already exists`);
+    createFilter(predicate) {
+      const id = nanoid(6);
       const filtered = new Set<TItem>();
-      filters[name] = {
+      filters[id] = {
         predicate,
         items: filtered
       };
 
-      return () => {
-        return [...filters[name].items.values()] as any[];
-      };
+      items.forEach(item => {
+        if (predicate(item)) {
+          filtered.add(item);
+        }
+      });
+
+      return () => [...filters[id].items.values()] as any[];
     }
   };
 

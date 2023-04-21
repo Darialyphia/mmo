@@ -10,6 +10,7 @@ import {
   getSnapshot
 } from './factories/context';
 import { createObstacle } from './factories/obstacle';
+import { Player, isPlayer } from './factories/player';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void | Promise<void>;
@@ -20,6 +21,7 @@ export const createGame = () => {
   const emitter = new EventEmitter() as TypedEmitter<GameEvents>;
   const queue = createEventQueue(context);
   const systems = createSystems(context);
+  const playerFilter = context.entities.createFilter<Player>(isPlayer);
 
   for (let i = 0; i < MAX_OBSTACLES; i++) {
     context.entities.add(createObstacle(context));
@@ -49,7 +51,7 @@ export const createGame = () => {
         const now = performance.now();
         queue.process();
         systems.run(now - prevTick);
-        emitter.emit('update', getSnapshot(context));
+        emitter.emit('update', getSnapshot(context, playerFilter));
 
         const elapsed = performance.now() - now;
         if (elapsed > perfBudget) {
