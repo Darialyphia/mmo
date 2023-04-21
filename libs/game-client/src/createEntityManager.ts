@@ -20,6 +20,7 @@ const createEntity = (entity: Entity) => {
 
   const sprite = createAnimatedSprite(entity.spriteId, 'idle');
   container.addChild(sprite);
+  container.cullable = true;
 
   // const g = new PIXI.Graphics();
   // g.beginFill(0xff0000);
@@ -94,6 +95,8 @@ export const createEntityManager = ({
   return {
     onStateUpdate(snapshot: GameState, prevSnapshot: GameState) {
       entities.forEach(entity => {
+        if (entity.data.brand === 'obstacle') return;
+
         if (!isDefined(snapshot.entitiesById[entity.data.id])) {
           const sprite = getOrCreateSprite(entity.data);
           camera.container.removeChild(sprite);
