@@ -166,7 +166,7 @@ const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
 };
 
 export const createMap = () => {
-  const seed = 68;
+  const seed = 1337;
 
   return {
     width: WIDTH,

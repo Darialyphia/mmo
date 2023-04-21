@@ -1,5 +1,6 @@
 import {
   Boundaries,
+  MapCell,
   Nullable,
   Point,
   addVector,
@@ -24,6 +25,7 @@ import {
   hasSleep
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
+import memoize from 'fast-memoize';
 import { isWalkable } from '../utils/map';
 
 type Seeker = GameEntity &
@@ -41,6 +43,7 @@ const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
   hasGridItem(x);
 
 export const createSeekingSystem = (ctx: GameContext) => {
+  const memoizedIsWalkable = memoize((cell: MapCell) => isWalkable(cell, ctx));
   const { entities, map, grid } = ctx;
   const stopSeeking = (entity: Seeker) => {
     entity.seeking.target = null;
@@ -91,7 +94,7 @@ export const createSeekingSystem = (ctx: GameContext) => {
     cells.forEach(cell => {
       const y = cell.position.y - bounds.min.y;
       const x = cell.position.x - bounds.min.x;
-      rows[y][x] = isWalkable(cell, ctx) ? 0 : 1;
+      rows[y][x] = memoizedIsWalkable(cell) ? 0 : 1;
     });
 
     return { bounds, rows };

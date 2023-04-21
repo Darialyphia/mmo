@@ -1,12 +1,12 @@
 export const TICK_RATE = 15;
-export const MAX_MONSTERS = 10;
-export const MAX_OBSTACLES = 50;
+export const MAX_MONSTERS = 30;
+export const MAX_OBSTACLES = 100;
 export const MONSTER_SPAWN_THRESHOLD = 200;
 
 // map constants
-export const WIDTH = 50;
-export const HEIGHT = 50;
-export const SPATIAL_GRID_DIMENSIONS = 25;
+export const WIDTH = 60;
+export const HEIGHT = 60;
+export const SPATIAL_GRID_DIMENSIONS = WIDTH / 2;
 export const CHUNK_SIZE = 10;
 
 // player constants
