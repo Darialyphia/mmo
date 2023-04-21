@@ -4,9 +4,9 @@ export const MAX_OBSTACLES = 100;
 export const MONSTER_SPAWN_THRESHOLD = 200;
 
 // map constants
-export const WIDTH = 50;
-export const HEIGHT = 50;
-export const SPATIAL_GRID_DIMENSIONS = WIDTH / 2;
+export const WIDTH = 80;
+export const HEIGHT = 80;
+export const SPATIAL_GRID_DIMENSIONS = 10;
 export const CHUNK_SIZE = 10;
 
 // player constants

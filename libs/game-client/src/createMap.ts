@@ -22,9 +22,8 @@ export type CreateMapOptions = {
 export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
   const spriteCache = new Map<string, PIXI.Sprite>();
 
-  const cells = createIndexedArray<MapCell, {}, {}>([], {}, {}).addIndex(
-    'key',
-    cell => getCellKey(cell.position)
+  const cells = createIndexedArray<MapCell>([]).addIndex('key', cell =>
+    getCellKey(cell.position)
   );
   // The cells whose texture have been evaluated but information about surrounfing tiles was missing
   const undecidedEdges = new Map<string, true>();

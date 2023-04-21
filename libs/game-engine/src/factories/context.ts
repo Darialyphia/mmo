@@ -24,7 +24,7 @@ export type AnyEntity = Player | Monster | Obstacle;
 
 export const createContext = () => {
   const map = createMap();
-  const entities = createIndexedArray<AnyEntity, {}, {}>([], {}, {})
+  const entities = createIndexedArray<AnyEntity>([])
     .addIndex('id', e => e.id)
     .addIndex('gridItem', e => e.gridItem)
     .addGroup('brand', e => e.__brand);
