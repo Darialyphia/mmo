@@ -55,14 +55,15 @@ export const createSeekingSystem = (ctx: GameContext) => {
     const seekable = grid
       .findNearbyRadius(
         { x: seeker.gridItem.x, y: seeker.gridItem.y },
-        seeker.fov
+        seeker.fov,
+        gridItem =>
+          seeker.seeking.canSeek(entities.getByIndex('gridItem', gridItem)!)
       )
       .map(gridItem => entities.getByIndex('gridItem', gridItem))
-      .filter(isDefined)
-      .filter(entity => entity && seeker.seeking.canSeek(entity))
       .sort(
         (a, b) =>
-          dist(b.gridItem, seeker.gridItem) - dist(a.gridItem, seeker.gridItem)
+          dist(b!.gridItem, seeker.gridItem) -
+          dist(a!.gridItem, seeker.gridItem)
       );
 
     return seekable[0]?.id;

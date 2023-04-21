@@ -104,7 +104,11 @@ export const createSpatialHashGrid = ({
     insert(item);
   };
 
-  const findNearby = (position: Point, bounds: Size) => {
+  const findNearby = (
+    position: Point,
+    bounds: Size,
+    filter = (item: GridItem) => true
+  ) => {
     const { min, max } = getBoundaries({ ...position, ...bounds });
     const nearby: GridItem[] = [];
     currentQueryId++;
@@ -115,6 +119,8 @@ export const createSpatialHashGrid = ({
         if (!cell) continue;
 
         cell.items.forEach(item => {
+          if (item.queryId === currentQueryId) return;
+          item.queryId = currentQueryId;
           const isWithinBounds = rectRectCollision(
             {
               x: item.x - item.w / 2,
@@ -129,9 +135,8 @@ export const createSpatialHashGrid = ({
             }
           );
           if (!isWithinBounds) return;
-          if (item.queryId === currentQueryId) return;
+          if (!filter(item)) return;
 
-          item.queryId = currentQueryId;
           nearby.push(item);
         });
       }
@@ -139,7 +144,11 @@ export const createSpatialHashGrid = ({
     return nearby;
   };
 
-  const findNearbyRadius = (position: Point, radius: number) => {
+  const findNearbyRadius = (
+    position: Point,
+    radius: number,
+    filter = (item: GridItem) => true
+  ) => {
     const { min, max } = getBoundaries({
       ...position,
       w: radius * 2,
@@ -154,6 +163,9 @@ export const createSpatialHashGrid = ({
         if (!cell) continue;
 
         cell.items.forEach(item => {
+          if (item.queryId === currentQueryId) return;
+          item.queryId = currentQueryId;
+
           const isWithinBounds = pointCircleCollision(
             { x: item.x, y: item.y },
             {
@@ -162,9 +174,8 @@ export const createSpatialHashGrid = ({
             }
           );
           if (!isWithinBounds) return;
-          if (item.queryId === currentQueryId) return;
+          if (!filter(item)) return;
 
-          item.queryId = currentQueryId;
           nearby.push(item);
         });
       }

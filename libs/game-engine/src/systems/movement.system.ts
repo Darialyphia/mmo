@@ -66,8 +66,9 @@ export const createMovementSystem = (ctx: GameContext) => {
       if (entity.velocity.x === 0 && entity.velocity.y === 0) return;
 
       const force = grid
-        .findNearby(entity.gridItem, { w: 1, h: 1 })
-        .filter(
+        .findNearby(
+          entity.gridItem,
+          { w: 1, h: 1 },
           gridItem =>
             gridItem !== entity.gridItem &&
             rectRectCollision(gridItem, entity.gridItem)
