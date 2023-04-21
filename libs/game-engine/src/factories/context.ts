@@ -1,16 +1,14 @@
 import {
   Entity,
-  GridItem,
   MapCell,
-  SpatialHashGrid,
   createIndexedArray,
   createSpatialHashGrid,
   isDefined
 } from '@mmo/shared';
-import { GameMap, createMap } from '../mapgen';
+import { createMap } from '../mapgen';
 import { Player, isPlayer } from './player';
 import { SPATIAL_GRID_DIMENSIONS } from '../constants';
-import { GameEntity, hasGridItem, hasOrientation } from '../types';
+import { hasGridItem, hasOrientation } from '../types';
 import { Monster } from './monster';
 import { Obstacle } from './obstacle';
 
@@ -36,7 +34,13 @@ export const createContext = () => {
     }
   });
 
-  return { map, entities, grid };
+  const featureFlags = {
+    seeking: false,
+    movement: true,
+    monsterSpawning: true
+  } as const;
+
+  return { map, entities, grid, featureFlags };
 };
 
 export const getSnapshot = (
@@ -61,6 +65,7 @@ export const getSnapshot = (
             brand: entity.__brand,
             spriteId: entity.spriteId,
             orientation: entity.orientation,
+            fov: entity.fov,
             path: entity.path,
             position: { x: entity.gridItem.x, y: entity.gridItem.y },
             size: { w: entity.gridItem.w, h: entity.gridItem.h }

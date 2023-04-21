@@ -59,6 +59,8 @@ export const createMovementSystem = (ctx: GameContext) => {
   };
 
   return (dt: number) => {
+    if (!ctx.featureFlags.movement) return;
+
     entities.getList().forEach(entity => {
       if (!hasGridItem(entity) || !hasMovement(entity)) return;
       if (entity.velocity.x === 0 && entity.velocity.y === 0) return;

@@ -6,6 +6,8 @@ export const createMonsterSpawnSystem = (ctx: GameContext) => {
   let spawhProgress = 0;
 
   return (dt: number) => {
+    if (!ctx.featureFlags.monsterSpawning) return;
+
     const count = ctx.entities.getList().filter(isMonster).length;
     if (count >= MAX_MONSTERS) return;
     spawhProgress += dt;

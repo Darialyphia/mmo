@@ -8,4 +8,5 @@ export type Entity = {
   id: string;
   orientation: 'left' | 'right';
   path?: Point[];
+  fov: number;
 };

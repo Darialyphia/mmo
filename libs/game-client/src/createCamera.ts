@@ -14,7 +14,7 @@ type CreateCameraOptions = {
 
 export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   const container = new Container();
-  container.scale.set(2, 2);
+  container.scale.set(1, 1);
   container.position.set(app.screen.width / 2, app.screen.height / 2);
 
   const setPosition = throttle(() => {
@@ -28,10 +28,10 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   window.addEventListener('resize', setPosition);
 
   const fow = new Graphics();
-  fow.zIndex = 2;
+  fow.zIndex = meta.height + 1;
   container.addChild(fow);
 
-  const update = ({ x, y }: Point) => {
+  const update = ({ x, y }: Point, fov: number) => {
     const newPivot = {
       x: lerp(1, [container.pivot.x, x]),
       y: lerp(1, [container.pivot.y, y])
@@ -53,7 +53,7 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
     );
 
     fow.clear();
-    fow.beginFill(0x000000, 0.5);
+    fow.beginFill(0x000000, 0.6);
     fow.drawRect(
       container.pivot.x - app.screen.width / container.scale.x,
       container.pivot.y - app.screen.height / container.scale.y,
@@ -61,7 +61,11 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
       app.screen.height * 2
     );
     fow.beginHole();
-    fow.drawCircle(newPivot.x, newPivot.y, CELL_SIZE * 9);
+    fow.drawCircle(
+      newPivot.x + CELL_SIZE / 2,
+      newPivot.y + CELL_SIZE / 2,
+      CELL_SIZE * fov
+    );
     fow.endHole();
     fow.endFill();
   };
@@ -76,7 +80,7 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
       const sprite = getOrCreateSprite(player);
       if (!sprite) return;
 
-      update(sprite.position);
+      update(sprite.position, player.fov);
     },
     cleanup() {
       window.removeEventListener('resize', setPosition);

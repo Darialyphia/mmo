@@ -162,6 +162,8 @@ export const createSeekingSystem = (ctx: GameContext) => {
   const getSeekers = entities.createFilter<Seeker>(isSeeker);
 
   return () => {
+    if (!ctx.featureFlags.seeking) return;
+
     getSeekers().forEach(entity => {
       if (!isSeeker(entity)) return;
       if (hasSleep(entity) && entity.sleep.isAsleep) return stopSeeking(entity);

@@ -13,6 +13,7 @@ import { Camera } from './createCamera';
 import { GameState } from '.';
 import { coordsToPixels, interpolateEntity } from './utils';
 import { CELL_SIZE } from './constants';
+import { config } from './config';
 
 export const spriteMap = new Map<string, PIXI.Container>();
 
@@ -20,15 +21,6 @@ const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
 
   const sprite = createAnimatedSprite(entity.spriteId, 'idle');
-
-  const spriteSize = {
-    x: sprite.texture.orig.width / CELL_SIZE,
-    y: sprite.texture.orig.height / CELL_SIZE
-  };
-  const entitySize = {
-    x: entity.size.w * 2,
-    y: entity.size.h * 2
-  };
   const { texture } = sprite;
 
   const size = {
@@ -43,6 +35,15 @@ const createEntity = (entity: Entity) => {
   sprite.position.set(-diff.x, -diff.y);
 
   container.addChild(sprite);
+
+  if (config.debug) {
+    const box = new PIXI.Graphics();
+
+    box.lineStyle({ width: 1, color: 0xffff00 });
+    box.beginFill(0xffff00, 0.5);
+    box.drawRect(0, 0, entity.size.w * CELL_SIZE, entity.size.h * CELL_SIZE);
+    container.addChild(box);
+  }
   container.cullable = true;
 
   return container;
@@ -146,21 +147,7 @@ export const createEntityManager = ({
           camera.container.addChild(sprite);
         }
 
-        const box = new PIXI.Graphics();
-        const pos = coordsToPixels(entity.data.position);
-
-        box.lineStyle({ width: 1, color: 0xffff00 });
-        box.beginFill(0xffff00, 0.5);
-        box.drawRect(
-          pos.x - CELL_SIZE / 2,
-          pos.y - CELL_SIZE / 2,
-          entity.data.size.w * CELL_SIZE,
-          entity.data.size.h * CELL_SIZE
-        );
-
-        debugContainer.addChild(box);
-
-        if (entity.data.path) {
+        if (config.debug && entity.data.path) {
           const g = new PIXI.Graphics();
           debugContainer.addChild(g);
           g.lineStyle({ width: 1, color: 0xffff00 });
