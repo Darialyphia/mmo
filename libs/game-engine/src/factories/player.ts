@@ -23,7 +23,9 @@ export const createPlayer = (playerId: string, { map, world }: GameContext) => {
     __brand: 'player',
     id: playerId,
     spriteId: 'rig',
-    box: world.createBox(findValidSpawnPosition(map), 1, 1),
+    box: world.createBox(findValidSpawnPosition(map), 1, 1, {
+      isTrigger: false
+    }),
     orientation: 'right',
     velocity: { x: 0, y: 0 },
     speed: PLAYER_SPEED,

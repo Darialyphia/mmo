@@ -2,8 +2,10 @@ import {
   Rectangle,
   addVector,
   clamp,
+  dist,
   getIntersectionRect,
-  setMagnitude
+  setMagnitude,
+  subVector
 } from '@mmo/shared';
 import { GameContext } from '../factories/context';
 import {
@@ -41,6 +43,22 @@ export const createMovementSystem = (ctx: GameContext) => {
       entity.box.setPosition(newPosition.x, newPosition.y);
     });
 
-    world.separate();
+    world.checkAll(({ a, b, overlapV }) => {
+      if (a.isStatic && b.isStatic) {
+        return;
+      }
+      if (!a.isStatic && !b.isStatic) {
+        return;
+      }
+
+      if (!a.isStatic) {
+        a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
+      }
+
+      if (!b.isStatic) {
+        b.setPosition(a.pos.x + overlapV.x, a.pos.y + overlapV.y);
+      }
+    });
+    // world.separate();
   };
 };
