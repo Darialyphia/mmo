@@ -1,12 +1,8 @@
 import {
-  GridItem,
-  Point,
   addVector,
   clamp,
-  dist,
-  rectRectCollision,
-  setMagnitude,
-  subVector
+  getIntersectionRect,
+  setMagnitude
 } from '@mmo/shared';
 import { GameContext } from '../factories/context';
 import {
@@ -16,10 +12,9 @@ import {
   hasGridItem,
   hasMovement
 } from '../types';
-import { isWalkable } from '../utils/map';
 import { isObstacle } from '../factories/obstacle';
+import { System } from 'detect-collisions';
 
-const ENTITY_SEPARATION = 5;
 type Movable = GameEntity & WithGridItem & WithMovement;
 const isMovable = (x: GameEntity): x is Movable =>
   hasGridItem(x) && hasMovement(x);
@@ -27,16 +22,9 @@ const isMovable = (x: GameEntity): x is Movable =>
 export const createMovementSystem = (ctx: GameContext) => {
   const { entities, map, grid } = ctx;
 
-  const getRect = (gridItem: GridItem) => ({
-    x: gridItem.x - gridItem.w / 2,
-    y: gridItem.y - gridItem.h / 2,
-    w: gridItem.w,
-    h: gridItem.h
-  });
-
   const computePosition = (entity: Movable, dt: number) => {
-    const velocity = setMagnitude(entity.velocity, (entity.speed * dt) / 1000);
-    const newPos = addVector(
+    let velocity = setMagnitude(entity.velocity, (entity.speed * dt) / 1000);
+    const desiredPos = addVector(
       { x: entity.gridItem.x, y: entity.gridItem.y },
       velocity
     );
@@ -46,7 +34,7 @@ export const createMovementSystem = (ctx: GameContext) => {
       max: { x: map.width - 1, y: map.height - 1 }
     };
 
-    const cell = map.getCellAt(newPos);
+    const cell = map.getCellAt(desiredPos);
     if (cell.height === 0) {
       return {
         x: clamp(entity.gridItem.x, bounds.min.x, bounds.max.x),
@@ -55,91 +43,82 @@ export const createMovementSystem = (ctx: GameContext) => {
     }
 
     const collidables = grid.findNearby(
-      newPos,
+      desiredPos,
       { w: entity.gridItem.w, h: entity.gridItem.h },
       g => isObstacle(entities.getByIndex('gridItem', g)!)
     );
 
+    const desiredPosBBox = {
+      x: desiredPos.x - entity.gridItem.w / 2,
+      y: desiredPos.y - entity.gridItem.h / 2,
+      w: entity.gridItem.w,
+      h: entity.gridItem.h
+    };
+    const entityBBox = {
+      x: entity.gridItem.x - entity.gridItem.w / 2,
+      y: entity.gridItem.y - entity.gridItem.h / 2,
+      w: entity.gridItem.w,
+      h: entity.gridItem.h
+    };
+
     collidables.forEach(collidable => {
-      console.log('=======');
-      const initialCollision = {
-        // prettier-ignore
-        left: entity.gridItem.x - entity.gridItem.w / 2 >= collidable.x - collidable.w / 2,
-        // prettier-ignore
-        right: entity.gridItem.x + entity.gridItem.w / 2 <= collidable.x + collidable.w / 2,
-        // prettier-ignore
-        top: entity.gridItem.y - entity.gridItem.h / 2 >= collidable.y - collidable.h / 2,
-        // prettier-ignore
-        bottom: entity.gridItem.y + entity.gridItem.h / 2 <= collidable.y + collidable.h / 2
+      const collidableBBox = {
+        x: collidable.x - collidable.w / 2,
+        y: collidable.y - collidable.h / 2,
+        w: collidable.w,
+        h: collidable.h
       };
-      const newCollision = {
-        // prettier-ignore
-        left: newPos.x - entity.gridItem.w / 2 >= collidable.x - collidable.w / 2,
-        // prettier-ignore
-        right: newPos.x + entity.gridItem.w / 2 <= collidable.x + collidable.w / 2,
-        // prettier-ignore
-        top: newPos.y - entity.gridItem.h / 2 >= collidable.y - collidable.h / 2,
-        // prettier-ignore
-        bottom: newPos.y + entity.gridItem.h / 2 <= collidable.y + collidable.h / 2
-      };
-      console.log(initialCollision, newCollision);
-      const shouldAdjustLeft =
-        velocity.x !== 0 && collidable.x <= entity.gridItem.x;
-      const shouldAdjustright =
-        velocity.x !== 0 && collidable.x >= entity.gridItem.x;
-      const shouldAdjustTop =
-        velocity.y !== 0 && collidable.y <= entity.gridItem.y;
-      const shouldAdjustBottom =
-        velocity.y !== 0 && collidable.y >= entity.gridItem.y;
-
-      if (shouldAdjustLeft) {
-        console.log('adjusting left');
-        bounds.min.x = Math.max(
-          bounds.min.x,
-          collidable.x + collidable.w / 2 + entity.gridItem.w / 2
-        );
+      const intersection = getIntersectionRect(desiredPosBBox, collidableBBox);
+      console.log(intersection);
+      if (
+        velocity.x !== 0 &&
+        intersection.x > collidableBBox.x &&
+        intersection.w < intersection.h
+      ) {
+        desiredPos.x += intersection.w;
       }
-      if (shouldAdjustright) {
-        console.log('adjusting right');
-
-        bounds.max.x = Math.min(
-          bounds.max.x,
-          collidable.x - collidable.w / 2 - entity.gridItem.w / 2
-        );
+      if (
+        velocity.x !== 0 &&
+        intersection.x <= collidableBBox.x &&
+        intersection.w < intersection.h
+      ) {
+        desiredPos.x -= intersection.w;
       }
-      if (shouldAdjustTop) {
-        console.log('adjusting top');
-        bounds.min.y = Math.max(
-          bounds.min.y,
-          collidable.y + collidable.h / 2 + entity.gridItem.h / 2
-        );
+      if (
+        velocity.y !== 0 &&
+        intersection.y > collidableBBox.y &&
+        intersection.w > intersection.h
+      ) {
+        desiredPos.y += intersection.h;
       }
-      if (shouldAdjustBottom) {
-        console.log('adjusting bottom');
-        bounds.max.y = Math.min(
-          bounds.max.y,
-          collidable.y - collidable.h / 2 - entity.gridItem.h / 2
-        );
+      if (
+        velocity.y !== 0 &&
+        intersection.y <= collidableBBox.y &&
+        intersection.w > intersection.h
+      ) {
+        desiredPos.y -= intersection.h;
       }
     });
 
     return {
-      x: clamp(newPos.x, bounds.min.x, bounds.max.x),
-      y: clamp(newPos.y, bounds.min.y, bounds.max.y)
+      x: clamp(desiredPos.x, 0, map.width - 1),
+      y: clamp(desiredPos.y, 0, map.height - 1)
     };
   };
 
   const getMovables = entities.createFilter<Movable>(isMovable);
+
+  const system = new System();
   return (dt: number) => {
     if (!ctx.featureFlags.movement) return;
 
     getMovables().forEach(entity => {
       if (entity.velocity.x === 0 && entity.velocity.y === 0) return;
 
-      let newPos = computePosition(entity, dt);
+      let desiredPos = computePosition(entity, dt);
 
-      entity.gridItem.x = newPos.x;
-      entity.gridItem.y = newPos.y;
+      entity.gridItem.x = desiredPos.x;
+      entity.gridItem.y = desiredPos.y;
       grid.update(entity.gridItem);
     });
   };

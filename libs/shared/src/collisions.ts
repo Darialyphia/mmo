@@ -1,5 +1,5 @@
 import { dist, fastDistCheck } from './math';
-import type { Circle, Point, Rectangle } from './types';
+import type { Circle, Line, Point, Rectangle } from './types';
 
 export const pointRectCollision = (point: Point, rect: Rectangle) =>
   point.x >= rect.x &&
@@ -41,4 +41,12 @@ export const rectRectCollision = (rect1: Rectangle, rect2: Rectangle) => {
     rect1.y < rect2.y + rect2.h &&
     rect1.h + rect1.y > rect2.y
   );
+};
+
+export const getIntersectionRect = (r1: Rectangle, r2: Rectangle) => {
+  var x = Math.max(r1.x, r2.x);
+  var y = Math.max(r1.y, r2.y);
+  var xx = Math.min(r1.x + r1.w, r2.x + r2.w);
+  var yy = Math.min(r1.y + r1.h, r2.y + r2.h);
+  return { x: x, y: y, w: xx - x, h: yy - y };
 };
