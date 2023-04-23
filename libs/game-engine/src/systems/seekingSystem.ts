@@ -54,11 +54,15 @@ export const createSeekingSystem = (ctx: GameContext) => {
 
   const findTarget = (seeker: Seeker): Nullable<GameEntityId> => {
     const seekerRect = bBoxToRect(seeker.box);
-    const seekable = getEntitiesInFieldOfView(seeker, ctx).sort((a, b) => {
-      const aRect = bBoxToRect(a.box);
-      const bRect = bBoxToRect(b.box);
-      return dist(bRect, seekerRect) - dist(bRect, seekerRect);
-    });
+    const seekable = getEntitiesInFieldOfView(seeker, ctx)
+      .filter(
+        candidate => isSeekable(candidate) && seeker.seeking.canSeek(candidate)
+      )
+      .sort((a, b) => {
+        const aRect = bBoxToRect(a.box);
+        const bRect = bBoxToRect(b.box);
+        return dist(bRect, seekerRect) - dist(aRect, seekerRect);
+      });
 
     return seekable[0]?.id;
   };
@@ -83,29 +87,27 @@ export const createSeekingSystem = (ctx: GameContext) => {
         w: 1 + (bounds.max.x - bounds.min.x),
         h: 1 + (bounds.max.y - bounds.min.y)
       },
-      () => 1
+      () => 0
     );
 
     cells.forEach(cell => {
       const y = cell.position.y - bounds.min.y;
       const x = cell.position.x - bounds.min.x;
 
-      // const hasObstacle = world
-      //   .search({
-      //     minX: cell.position.x - 0.5,
-      //     minY: cell.position.y - 0.5,
-      //     maxX: cell.position.x + 0.5,
-      //     maxY: cell.position.y + 0.5
-      //   })
-      //   .some(body => {
-      //     const entity = entities.getByIndex('box', body);
-      //     if (!entity) return true;
-      //     return isObstacle(entity);
-      //   });
+      const hasObstacle = world
+        .search({
+          minX: cell.position.x - 1,
+          minY: cell.position.y - 1,
+          maxX: cell.position.x,
+          maxY: cell.position.y
+        })
+        .some(body => {
+          const entity = entities.getByIndex('box', body);
+          if (!entity) return true;
+          return isObstacle(entity);
+        });
 
-      rows[y][x] = 0;
-
-      // rows[y][x] = hasObstacle ? 1 : 0;
+      rows[y][x] = hasObstacle ? 1 : 0;
     });
 
     return { bounds, rows };
@@ -124,14 +126,25 @@ export const createSeekingSystem = (ctx: GameContext) => {
     const { bounds, rows } = getAstarRows(seeker);
     const seekerRect = bBoxToRect(seeker.box);
     const targetRect = bBoxToRect(target.box);
-    const start = {
-      x: Math.round(seekerRect.x),
-      y: Math.round(seekerRect.y)
-    };
-    const goal = {
-      x: Math.round(targetRect.x),
-      y: Math.round(targetRect.y)
-    };
+    const start = scaleVecToBounds(
+      {
+        x: Math.round(seekerRect.x),
+        y: Math.round(seekerRect.y)
+      },
+      bounds
+    );
+    const goal = scaleVecToBounds(
+      {
+        x: Math.round(targetRect.x),
+        y: Math.round(targetRect.y)
+      },
+      bounds
+    );
+
+    // FIXME someimes the start or gal get incorrecty flagged as non walkable
+    rows[start.y][start.x] = 0;
+    rows[goal.y][goal.x] = 0;
+
     try {
       const path = new AStarFinder({
         grid: {
@@ -139,12 +152,9 @@ export const createSeekingSystem = (ctx: GameContext) => {
         },
         diagonalAllowed: true,
         includeStartNode: false,
-        includeEndNode: false,
+        includeEndNode: true,
         weight: 0.7
-      }).findPath(
-        scaleVecToBounds(start, bounds),
-        scaleVecToBounds(goal, bounds)
-      );
+      }).findPath(start, goal);
       seeker.path = mapAstarPath(path, bounds);
       if (!path.length) return { x: 0, y: 0 };
       const [nextStep] = path;
@@ -177,7 +187,9 @@ export const createSeekingSystem = (ctx: GameContext) => {
 
     getSeekers().forEach(entity => {
       if (!isSeeker(entity)) return;
-      if (hasSleep(entity) && entity.sleep.isAsleep) return stopSeeking(entity);
+      if (hasSleep(entity) && entity.sleep.isAsleep) {
+        return;
+      }
 
       if (!entity.seeking.target) {
         entity.seeking.target = findTarget(entity);
