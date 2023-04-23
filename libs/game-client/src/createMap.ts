@@ -145,18 +145,29 @@ export const createMap = async ({ app, camera, meta }: CreateMapOptions) => {
     );
     tileContainer.scale.set(1.0005, 1.0005); //remves rendering artifact, not sure wy they're here in the first place
 
-    const sprite = getOrCreateCellSprite(cell);
     currentChunkContainer.addChild(tileContainer);
-
-    tileContainer.addChild(sprite);
     if (config.debug) {
       const g = new PIXI.Graphics();
+      const color = cell.height === 0 ? 0x666666 : 0x00ff00;
       g.lineStyle({
         width: 0.5,
-        color: cell.height === 0 ? 0xff0000 : 0x00ff00
+        color
       });
+      g.beginFill(color, 0.5);
       g.drawRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE);
+      // const text = new PIXI.Text(`${cell.position.x}:${cell.position.y}`, {
+      //   fontFamily: 'monospace',
+      //   fill: 0xffffff,
+      //   fontSize: 10,
+      //   align: 'center'
+      // });
+      // text.scale.set(0.5, 0.5);
+      // text.anchor.set(0.5, 0.5);
       tileContainer.addChild(g);
+      // tileContainer.addChild(text);
+    } else {
+      const sprite = getOrCreateCellSprite(cell);
+      tileContainer.addChild(sprite);
     }
   };
 

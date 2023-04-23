@@ -1,11 +1,9 @@
 import type { CharacterResource } from '../types';
-import { adventurer } from './adventurer';
-import { enchantress } from './enchantress';
+import { rig } from './rig';
 import { zombie } from './zombie';
 
 export const characters = {
-  adventurer,
-  enchantress,
+  rig,
   zombie
 } satisfies Record<string, CharacterResource>;
 

@@ -1,6 +1,6 @@
 { "frames": [
    {
-    "filename": "tree.aseprite",
+    "filename": "placeholder2x3.aseprite",
     "frame": { "x": 0, "y": 0, "w": 64, "h": 96 },
     "rotated": false,
     "trimmed": false,
@@ -12,7 +12,7 @@
  "meta": {
   "app": "https://www.aseprite.org/",
   "version": "1.2.40-x64",
-  "image": "tree.png",
+  "image": "placeholder2x3.png",
   "format": "I8",
   "size": { "w": 64, "h": 96 },
   "scale": "1",

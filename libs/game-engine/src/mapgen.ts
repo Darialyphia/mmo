@@ -11,7 +11,7 @@ import {
   fastDistCheck
 } from '@mmo/shared';
 import { makeNoise2D } from 'open-simplex-noise';
-import { CHUNK_SIZE, HEIGHT, WIDTH } from './constants';
+import { CHUNK_SIZE, HEIGHT, MAP_SEED, WIDTH } from './constants';
 import { generateNoiseChunk, sampleNoise } from './utils/noise';
 
 const HEIGHTS = {
@@ -166,7 +166,7 @@ const getFieldOfView = ({ x, y }: Point, fov: number, seed: number) => {
 };
 
 export const createMap = () => {
-  const seed = 12345;
+  const seed = MAP_SEED;
 
   return {
     width: WIDTH,

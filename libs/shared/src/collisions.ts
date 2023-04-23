@@ -34,8 +34,11 @@ export const circleRectCollision = (circle: Circle, rect: Rectangle) => {
   return dx * dx + dy * dy <= circle.r * circle.r;
 };
 
-export const rectRectCollision = (rect1: Rectangle, rect2: Rectangle) =>
-  rect1.x < rect2.x + rect2.w &&
-  rect1.x + rect1.w > rect2.x &&
-  rect1.y < rect2.y + rect2.h &&
-  rect1.h + rect1.y > rect2.y;
+export const rectRectCollision = (rect1: Rectangle, rect2: Rectangle) => {
+  return (
+    rect1.x < rect2.x + rect2.w &&
+    rect1.x + rect1.w > rect2.x &&
+    rect1.y < rect2.y + rect2.h &&
+    rect1.h + rect1.y > rect2.y
+  );
+};

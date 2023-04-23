@@ -27,7 +27,7 @@ export const createMonster = ({ map, grid }: GameContext) => {
   const monster: Monster = {
     __brand: 'monster',
     id: nanoid(6),
-    spriteId: 'zombie',
+    spriteId: 'rig',
     gridItem: grid.add({
       ...findValidSpawnPosition(map),
       w: 1,

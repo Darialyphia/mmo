@@ -7,6 +7,7 @@ import {
   createMatrix,
   dist,
   isDefined,
+  rectRectCollision,
   setMagnitude,
   subVector
 } from '@mmo/shared';
@@ -25,8 +26,7 @@ import {
   hasSleep
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
-import memoize from 'fast-memoize';
-import { isWalkable } from '../utils/map';
+import { isObstacle } from '../factories/obstacle';
 
 type Seeker = GameEntity &
   WithGridItem &
@@ -43,7 +43,6 @@ const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
   hasGridItem(x);
 
 export const createSeekingSystem = (ctx: GameContext) => {
-  const memoizedIsWalkable = memoize((cell: MapCell) => isWalkable(cell, ctx));
   const { entities, map, grid } = ctx;
   const stopSeeking = (entity: Seeker) => {
     entity.seeking.target = null;
@@ -95,7 +94,12 @@ export const createSeekingSystem = (ctx: GameContext) => {
     cells.forEach(cell => {
       const y = cell.position.y - bounds.min.y;
       const x = cell.position.x - bounds.min.x;
-      rows[y][x] = memoizedIsWalkable(cell) ? 0 : 1;
+
+      const hasObstacle = grid.findNearby(cell.position, { w: 1, h: 1 }, g =>
+        isObstacle(entities.getByIndex('gridItem', g)!)
+      ).length;
+
+      rows[y][x] = cell.height === 0 || hasObstacle ? 1 : 0;
     });
 
     return { bounds, rows };
@@ -134,25 +138,27 @@ export const createSeekingSystem = (ctx: GameContext) => {
         scaleVecToBounds(start, bounds),
         scaleVecToBounds(goal, bounds)
       );
-
       seeker.path = mapAstarPath(path, bounds);
 
       if (!path.length) return { x: 0, y: 0 };
+      const [nextStep] = path;
 
-      const force = addVector(
-        seeker.velocity,
-        subVector(
-          addVector(
-            {
-              x: path[0][0],
-              y: path[0][1]
-            },
-            bounds.min
-          ),
-          seeker.gridItem
-        )
+      return setMagnitude(
+        addVector(
+          seeker.velocity,
+          subVector(
+            addVector(
+              {
+                x: nextStep[0],
+                y: nextStep[1]
+              },
+              bounds.min
+            ),
+            seeker.gridItem
+          )
+        ),
+        1
       );
-      return setMagnitude(force, 1);
     } catch {
       // console.log(`pathfinding error for entity ${seeker.id}, skipping.`);
       return seeker.velocity;
@@ -172,9 +178,11 @@ export const createSeekingSystem = (ctx: GameContext) => {
         entity.seeking.target = findTarget(entity);
       } else {
         const target = entities.getByIndex('id', entity.seeking.target);
+
         if (!target) {
           return stopSeeking(entity);
         }
+
         const canSeek = isSeekable(target) && entity.seeking.canSeek(target);
         if (!canSeek) {
           return stopSeeking(entity);
@@ -182,7 +190,6 @@ export const createSeekingSystem = (ctx: GameContext) => {
 
         const isOutOfReach =
           dist(entity.gridItem, target.gridItem) > entity.fov;
-
         if (isOutOfReach) {
           return stopSeeking(entity);
         }

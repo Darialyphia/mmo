@@ -22,7 +22,7 @@ export const createPlayer = (playerId: string, { map, grid }: GameContext) => {
   const player: Player = {
     __brand: 'player',
     id: playerId,
-    spriteId: Math.random() > 0.5 ? 'adventurer' : 'enchantress',
+    spriteId: 'rig',
     gridItem: grid.add({
       ...findValidSpawnPosition(map),
       w: 1,

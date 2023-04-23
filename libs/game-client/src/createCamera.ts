@@ -14,7 +14,7 @@ type CreateCameraOptions = {
 
 export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   const container = new Container();
-  container.scale.set(1, 1);
+  container.scale.set(2, 2);
   container.position.set(app.screen.width / 2, app.screen.height / 2);
 
   const setPosition = throttle(() => {

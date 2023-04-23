@@ -17,6 +17,12 @@ import { config } from './config';
 
 export const spriteMap = new Map<string, PIXI.Container>();
 
+const DEBUG_COLOR_PER_BRAND = {
+  player: 0x0000ff,
+  monster: 0xff0000,
+  obstacle: 0xffffff
+};
+
 const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
 
@@ -34,15 +40,16 @@ const createEntity = (entity: Entity) => {
 
   sprite.position.set(-diff.x, -diff.y);
 
-  container.addChild(sprite);
-
   if (config.debug) {
     const box = new PIXI.Graphics();
 
-    box.lineStyle({ width: 1, color: 0xffff00 });
-    box.beginFill(0xffff00, 0.5);
+    const color = DEBUG_COLOR_PER_BRAND[entity.brand];
+    box.lineStyle({ width: 1, color });
+    box.beginFill(color, 0.5);
     box.drawRect(0, 0, entity.size.w * CELL_SIZE, entity.size.h * CELL_SIZE);
     container.addChild(box);
+  } else {
+    container.addChild(sprite);
   }
   container.cullable = true;
 

@@ -8,7 +8,7 @@ import {
 import { createMap } from '../mapgen';
 import { Player, isPlayer } from './player';
 import { SPATIAL_GRID_DIMENSIONS } from '../constants';
-import { hasGridItem, hasOrientation } from '../types';
+import { hasFieldOfView, hasGridItem, hasOrientation } from '../types';
 import { Monster } from './monster';
 import { Obstacle } from './obstacle';
 
@@ -35,9 +35,9 @@ export const createContext = () => {
   });
 
   const featureFlags = {
-    seeking: false,
+    seeking: true,
     movement: true,
-    monsterSpawning: true
+    monsterSpawning: false
   } as const;
 
   return { map, entities, grid, featureFlags };
@@ -65,14 +65,14 @@ export const getSnapshot = (
             brand: entity.__brand,
             spriteId: entity.spriteId,
             orientation: entity.orientation,
-            fov: entity.fov,
+            fov: hasFieldOfView(entity) ? entity.fov : 0,
             path: entity.path,
             position: { x: entity.gridItem.x, y: entity.gridItem.y },
             size: { w: entity.gridItem.w, h: entity.gridItem.h }
           };
         })
         .filter(isDefined);
-      const cells = context.map.getFieldOfView(entity.gridItem, entity.fov);
+      const cells = context.map.getFieldOfView(entity.gridItem, entity.fov + 1);
 
       return [entity.id, { entities, cells }];
     });

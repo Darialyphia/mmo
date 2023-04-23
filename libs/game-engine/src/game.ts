@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import type { Nullable } from '@mmo/shared';
-import { MAX_OBSTACLES, TICK_RATE } from './constants';
+import { MAX_MONSTERS, MAX_OBSTACLES, TICK_RATE } from './constants';
 import { createEventQueue, type GameEvent } from './factories/eventQueue';
 import { createSystems } from './factories/systems';
 import {
@@ -11,6 +11,8 @@ import {
 } from './factories/context';
 import { createObstacle } from './factories/obstacle';
 import { Player, isPlayer } from './factories/player';
+import { createMonster } from './factories/monster';
+import cliProgress from 'cli-progress';
 
 export type GameEvents = {
   update: (state: GameStateSnapshot) => void | Promise<void>;
@@ -23,9 +25,34 @@ export const createGame = () => {
   const systems = createSystems(context);
   const playerFilter = context.entities.createFilter<Player>(isPlayer);
 
+  console.log('Generating world...');
+  const obstaclesBar = new cliProgress.SingleBar(
+    {
+      format: 'obstacles [{bar}] {percentage}%'
+    },
+    cliProgress.Presets.shades_classic
+  );
+  obstaclesBar.start(MAX_OBSTACLES, 0);
+
   for (let i = 0; i < MAX_OBSTACLES; i++) {
     context.entities.add(createObstacle(context));
+    obstaclesBar.increment();
   }
+  obstaclesBar.stop();
+
+  const monstersBar = new cliProgress.SingleBar(
+    {
+      format: 'monsters   [{bar}] {percentage}%'
+    },
+    cliProgress.Presets.shades_classic
+  );
+  monstersBar.start(MAX_MONSTERS, 0);
+  for (let i = 0; i < MAX_MONSTERS; i++) {
+    context.entities.add(createMonster(context));
+    monstersBar.increment();
+  }
+  monstersBar.stop();
+  console.log('World generated !');
 
   let prevTick = 0;
   let interval: Nullable<ReturnType<typeof setInterval>>;

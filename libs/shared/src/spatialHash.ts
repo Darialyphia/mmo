@@ -110,9 +110,9 @@ export const createSpatialHashGrid = ({
     filter = (item: GridItem) => true
   ) => {
     const { min, max } = getBoundaries({ ...position, ...bounds });
+
     const nearby: GridItem[] = [];
     currentQueryId++;
-
     for (let x = min.x; x <= max.x; ++x) {
       for (let y = min.y; y <= max.y; ++y) {
         const cell = cells[x]?.[y];
