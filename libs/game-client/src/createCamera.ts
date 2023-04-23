@@ -18,11 +18,6 @@ export const createCamera = ({ app, meta }: CreateCameraOptions) => {
   container.position.set(app.screen.width / 2, app.screen.height / 2);
 
   const setPosition = throttle(() => {
-    console.log(
-      'set camera position',
-      app.screen.width / 2,
-      app.screen.height / 2
-    );
     container.position.set(app.screen.width / 2, app.screen.height / 2);
   }, 100);
   window.addEventListener('resize', setPosition);

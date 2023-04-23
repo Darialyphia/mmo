@@ -38,8 +38,6 @@ const createEntity = (entity: Entity) => {
     y: CELL_SIZE / 2 + (texture.height - size.y * 2)
   };
 
-  sprite.position.set(-diff.x, -diff.y);
-
   if (config.debug) {
     const box = new PIXI.Graphics();
 
@@ -47,8 +45,10 @@ const createEntity = (entity: Entity) => {
     box.lineStyle({ width: 1, color });
     box.beginFill(color, 0.5);
     box.drawRect(0, 0, entity.size.w * CELL_SIZE, entity.size.h * CELL_SIZE);
+    box.position.set(-diff.x, -diff.y);
     container.addChild(box);
   } else {
+    sprite.position.set(-diff.x, -diff.y);
     container.addChild(sprite);
   }
   container.cullable = true;
@@ -108,12 +108,7 @@ export const createEntityManager = ({
           )
         : entity.data.position;
 
-      const toPixels = coordsToPixels(
-        subVector(position, {
-          x: entity.data.size.w / 2,
-          y: entity.data.size.h / 2
-        })
-      );
+      const toPixels = coordsToPixels(position);
       sprite.position.set(toPixels.x, toPixels.y);
     });
   };

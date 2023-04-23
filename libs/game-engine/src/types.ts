@@ -1,4 +1,5 @@
 import { Entity, GridItem, Nullable, Point } from '@mmo/shared';
+import { Box } from 'detect-collisions';
 
 export type Directions = {
   up: boolean;
@@ -14,9 +15,9 @@ export type WithBrand<T extends string> = { __brand: T };
 export const hasBrand = (x: GameEntity): x is GameEntity & WithBrand<string> =>
   '__brand' in x;
 
-export type WithGridItem = { gridItem: GridItem };
-export const hasGridItem = (x: GameEntity): x is GameEntity & WithGridItem =>
-  'gridItem' in x;
+export type WithPosition = { box: Box };
+export const hasPosition = (x: GameEntity): x is GameEntity & WithPosition =>
+  'box' in x;
 
 export type WithMovement = { velocity: Point; speed: number };
 export const hasMovement = (x: GameEntity): x is GameEntity & WithMovement =>

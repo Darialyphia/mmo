@@ -16,9 +16,10 @@ socket.on('connect', () => {
     if (!container.value) return;
     engine = await createGameClient({
       container: container.value,
-      meta: { ...payload, sessionId: socket.id },
-      socket
+      meta: { ...payload, sessionId: socket.id }
     });
+    engine.on('move', payload => socket.emit('move', payload));
+
     const { canvas } = engine;
     container.value.appendChild(canvas as any);
     document.body.style.overflow = 'hidden';

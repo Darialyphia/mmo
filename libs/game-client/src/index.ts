@@ -11,14 +11,19 @@ import { enablePIXIDevtools } from './utils';
 import { createCamera } from './createCamera';
 import { Stage } from '@pixi/layers';
 import type { Socket } from 'socket.io-client';
-import { createControls } from './createControls';
+import { Directions, createControls } from './createControls';
 import { createEntityManager } from './createEntityManager';
 import { loadTilesets } from './caches/tileset';
 import { createMiniMap } from './createMinimap';
 import { loadCharactersBundle, loadObstaclesBundle } from './caches/sprites';
+import mitt from 'mitt';
 
 PIXI.Container.defaultSortableChildren = true;
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
+
+type GameEvents = {
+  move: Directions;
+};
 
 export type GameState = {
   entities: Entity[];
@@ -39,13 +44,11 @@ const createGameState = (): GameState => {
 export type CreateGameClientOptions = {
   container: HTMLElement;
   meta: GameMeta;
-  socket: Socket;
 };
 
 export const createGameClient = async ({
   container,
-  meta,
-  socket
+  meta
 }: CreateGameClientOptions) => {
   await Promise.all([
     loadTilesets(),
@@ -71,9 +74,10 @@ export const createGameClient = async ({
   const entityManager = createEntityManager({ app, camera, meta });
   const controls = createControls();
   const minimap = createMiniMap({ app, meta });
+  const emitter = mitt<GameEvents>();
 
   controls.on('move', directions => {
-    socket.emit('move', directions);
+    emitter.emit('move', directions);
   });
   app.stage.addChild(camera.container);
 
@@ -95,6 +99,7 @@ export const createGameClient = async ({
       map.onStateUpdate(state);
       minimap.onStateUpdate(state);
     },
+    on: emitter.on,
     cleanup() {
       camera.cleanup();
       map.cleanup();

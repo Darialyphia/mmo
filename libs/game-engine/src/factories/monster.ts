@@ -4,7 +4,7 @@ import {
   GameEntity,
   WithBrand,
   WithFieldOfView,
-  WithGridItem,
+  WithPosition,
   WithMovement,
   WithSeeking,
   WithSleep
@@ -14,7 +14,7 @@ import { MONSTER_FOV, MONSTER_SPEED } from '../constants';
 
 export type Monster = GameEntity &
   WithBrand<'monster'> &
-  WithGridItem &
+  WithPosition &
   WithMovement &
   WithFieldOfView &
   WithSeeking &
@@ -23,16 +23,12 @@ export type Monster = GameEntity &
 export const isMonster = (x: GameEntity): x is Monster =>
   '__brand' in x && x.__brand === 'monster';
 
-export const createMonster = ({ map, grid }: GameContext) => {
+export const createMonster = ({ map, world }: GameContext) => {
   const monster: Monster = {
     __brand: 'monster',
     id: nanoid(6),
     spriteId: 'rig',
-    gridItem: grid.add({
-      ...findValidSpawnPosition(map),
-      w: 1,
-      h: 1
-    }),
+    box: world.createBox(findValidSpawnPosition(map), 1, 1),
     orientation: 'right',
     velocity: { x: 0, y: 0 },
     speed: MONSTER_SPEED,

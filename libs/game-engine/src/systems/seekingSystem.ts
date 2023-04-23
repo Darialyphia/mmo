@@ -16,34 +16,36 @@ import {
   GameEntity,
   GameEntityId,
   WithFieldOfView,
-  WithGridItem,
+  WithPosition,
   WithMovement,
   WithSeeking,
   hasFieldOfView,
-  hasGridItem,
+  hasPosition,
   hasMovement,
   hasSeeking,
   hasSleep
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
 import { isObstacle } from '../factories/obstacle';
+import { bBoxToRect, getEntitiesInFieldOfView } from '../utils/entity';
+import { isCellWalkable } from '../utils/map';
 
 type Seeker = GameEntity &
-  WithGridItem &
+  WithPosition &
   WithFieldOfView &
   WithSeeking &
   WithMovement;
 
-type Seekable = GameEntity & WithGridItem;
+type Seekable = GameEntity & WithPosition;
 
 const isSeeker = (x: GameEntity): x is GameEntity & Seeker =>
-  hasGridItem(x) && hasFieldOfView(x) && hasSeeking(x) && hasMovement(x);
+  hasPosition(x) && hasFieldOfView(x) && hasSeeking(x) && hasMovement(x);
 
 const isSeekable = (x: GameEntity): x is GameEntity & Seekable =>
-  hasGridItem(x);
+  hasPosition(x);
 
 export const createSeekingSystem = (ctx: GameContext) => {
-  const { entities, map, grid } = ctx;
+  const { entities, map, world } = ctx;
   const stopSeeking = (entity: Seeker) => {
     entity.seeking.target = null;
     entity.velocity = { x: 0, y: 0 };
@@ -51,25 +53,18 @@ export const createSeekingSystem = (ctx: GameContext) => {
   };
 
   const findTarget = (seeker: Seeker): Nullable<GameEntityId> => {
-    const seekable = grid
-      .findNearbyRadius(
-        { x: seeker.gridItem.x, y: seeker.gridItem.y },
-        seeker.fov,
-        gridItem =>
-          seeker.seeking.canSeek(entities.getByIndex('gridItem', gridItem)!)
-      )
-      .map(gridItem => entities.getByIndex('gridItem', gridItem))
-      .sort(
-        (a, b) =>
-          dist(b!.gridItem, seeker.gridItem) -
-          dist(a!.gridItem, seeker.gridItem)
-      );
+    const seekerRect = bBoxToRect(seeker.box);
+    const seekable = getEntitiesInFieldOfView(seeker, ctx).sort((a, b) => {
+      const aRect = bBoxToRect(a.box);
+      const bRect = bBoxToRect(b.box);
+      return dist(bRect, seekerRect) - dist(bRect, seekerRect);
+    });
 
     return seekable[0]?.id;
   };
 
   const getAstarRows = (seeker: Seeker) => {
-    const cells = map.getFieldOfView(seeker.gridItem, seeker.fov);
+    const cells = map.getFieldOfView(bBoxToRect(seeker.box), seeker.fov);
     const xPositions = cells.map(c => c.position.x);
     const yPositions = cells.map(c => c.position.y);
     const bounds = {
@@ -95,11 +90,22 @@ export const createSeekingSystem = (ctx: GameContext) => {
       const y = cell.position.y - bounds.min.y;
       const x = cell.position.x - bounds.min.x;
 
-      const hasObstacle = grid.findNearby(cell.position, { w: 1, h: 1 }, g =>
-        isObstacle(entities.getByIndex('gridItem', g)!)
-      ).length;
+      // const hasObstacle = world
+      //   .search({
+      //     minX: cell.position.x - 0.5,
+      //     minY: cell.position.y - 0.5,
+      //     maxX: cell.position.x + 0.5,
+      //     maxY: cell.position.y + 0.5
+      //   })
+      //   .some(body => {
+      //     const entity = entities.getByIndex('box', body);
+      //     if (!entity) return true;
+      //     return isObstacle(entity);
+      //   });
 
-      rows[y][x] = cell.height === 0 || hasObstacle ? 1 : 0;
+      rows[y][x] = 0;
+
+      // rows[y][x] = hasObstacle ? 1 : 0;
     });
 
     return { bounds, rows };
@@ -116,14 +122,15 @@ export const createSeekingSystem = (ctx: GameContext) => {
     if (!target) return seeker.velocity;
 
     const { bounds, rows } = getAstarRows(seeker);
-
+    const seekerRect = bBoxToRect(seeker.box);
+    const targetRect = bBoxToRect(target.box);
     const start = {
-      x: Math.round(seeker.gridItem.x),
-      y: Math.round(seeker.gridItem.y)
+      x: Math.round(seekerRect.x),
+      y: Math.round(seekerRect.y)
     };
     const goal = {
-      x: Math.round(target.gridItem.x),
-      y: Math.round(target.gridItem.y)
+      x: Math.round(targetRect.x),
+      y: Math.round(targetRect.y)
     };
     try {
       const path = new AStarFinder({
@@ -132,14 +139,13 @@ export const createSeekingSystem = (ctx: GameContext) => {
         },
         diagonalAllowed: true,
         includeStartNode: false,
-        includeEndNode: true,
-        weight: 0.2
+        includeEndNode: false,
+        weight: 0.7
       }).findPath(
         scaleVecToBounds(start, bounds),
         scaleVecToBounds(goal, bounds)
       );
       seeker.path = mapAstarPath(path, bounds);
-
       if (!path.length) return { x: 0, y: 0 };
       const [nextStep] = path;
 
@@ -154,13 +160,12 @@ export const createSeekingSystem = (ctx: GameContext) => {
               },
               bounds.min
             ),
-            seeker.gridItem
+            seekerRect
           )
         ),
         1
       );
     } catch {
-      // console.log(`pathfinding error for entity ${seeker.id}, skipping.`);
       return seeker.velocity;
     }
   };
@@ -188,8 +193,9 @@ export const createSeekingSystem = (ctx: GameContext) => {
           return stopSeeking(entity);
         }
 
-        const isOutOfReach =
-          dist(entity.gridItem, target.gridItem) > entity.fov;
+        const rect = bBoxToRect(entity.box);
+        const targetRect = bBoxToRect(target.box);
+        const isOutOfReach = dist(rect, targetRect) > entity.fov;
         if (isOutOfReach) {
           return stopSeeking(entity);
         }

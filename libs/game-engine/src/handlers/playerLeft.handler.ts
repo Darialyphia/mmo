@@ -7,11 +7,10 @@ export type PlayerLeftEvent = {
 
 export const onPlayerLeft = (
   { playerId }: PlayerLeftEvent['payload'],
-  { entities, grid }: GameContext
+  { entities, world }: GameContext
 ) => {
   const player = entities.getByIndex('id', playerId);
   if (!player) return;
-
+  world.remove(player.box);
   entities.delete(player);
-  grid.remove(player.gridItem);
 };

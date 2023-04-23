@@ -48,8 +48,6 @@ export const useKeydownOnce = (cb: (e: KeyboardEvent) => void) => {
   });
 };
 
-type Direction = Values<Directions>;
-
 const keyMap = {
   [KeyboardControls.W]: 'up',
   [KeyboardControls.S]: 'down',
