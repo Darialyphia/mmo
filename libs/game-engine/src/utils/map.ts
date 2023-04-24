@@ -6,14 +6,24 @@ export const findValidSpawnPosition = (map: GameMap, size = { w: 1, h: 1 }) => {
     x: randomInt(map.width - 1),
     y: randomInt(map.height - 1)
   };
-  let cell = map.getCellAt(spawnPosition);
+  let cells = map.getWithinBounds({
+    min: { x: spawnPosition.x, y: spawnPosition.y },
+    max: { x: spawnPosition.x + size.w, y: spawnPosition.y + size.h }
+  });
 
-  while (cell.height === 0) {
+  let isOk = cells.every(cell => cell.height !== 0);
+
+  while (!isOk) {
     spawnPosition = {
-      x: randomInt(map.width),
-      y: randomInt(map.height)
+      x: randomInt(map.width - 1),
+      y: randomInt(map.height - 1)
     };
-    cell = map.getCellAt(spawnPosition);
+    cells = map.getWithinBounds({
+      min: { x: spawnPosition.x, y: spawnPosition.y },
+      max: { x: spawnPosition.x + size.w, y: spawnPosition.y + size.h }
+    });
+
+    isOk = cells.every(cell => cell.height !== 0);
   }
 
   return spawnPosition;

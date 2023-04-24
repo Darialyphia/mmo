@@ -18,6 +18,8 @@ import {
 import { isObstacle } from '../factories/obstacle';
 import { System } from 'detect-collisions';
 import { isCellWalkable } from '../utils/map';
+import { isMonster } from '../factories/monster';
+import { isPlayer } from '../factories/player';
 
 type Movable = GameEntity & WithPosition & WithMovement;
 const isMovable = (x: GameEntity): x is Movable =>
@@ -47,17 +49,23 @@ export const createMovementSystem = (ctx: GameContext) => {
       if (a.isStatic && b.isStatic) {
         return;
       }
-      if (!a.isStatic && !b.isStatic) {
-        return;
+      if (!a.isStatic && b.isStatic) {
+        return a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
       }
 
-      if (!a.isStatic) {
-        a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
+      if (!b.isStatic && a.isStatic) {
+        return b.setPosition(a.pos.x + overlapV.x, a.pos.y + overlapV.y);
       }
 
-      if (!b.isStatic) {
-        b.setPosition(a.pos.x + overlapV.x, a.pos.y + overlapV.y);
+      const aEntity = entities.getByIndex('box', a)!;
+      const bEntity = entities.getByIndex('box', b)!;
+
+      if (!isPlayer(aEntity)) {
+        return a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
       }
+      // if (!isPlayer(bEntity)) {
+      //   return b.setPosition(a.pos.x + overlapV.x, a.pos.y + overlapV.y);
+      // }
     });
     // world.separate();
   };

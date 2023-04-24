@@ -1,11 +1,11 @@
 { "frames": [
    {
     "filename": "placeholder2x3.aseprite",
-    "frame": { "x": 0, "y": 0, "w": 64, "h": 96 },
+    "frame": { "x": 0, "y": 0, "w": 64, "h": 80 },
     "rotated": false,
     "trimmed": false,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 96 },
-    "sourceSize": { "w": 64, "h": 96 },
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 80 },
+    "sourceSize": { "w": 64, "h": 80 },
     "duration": 400
    }
  ],
@@ -14,7 +14,7 @@
   "version": "1.2.40-x64",
   "image": "placeholder2x3.png",
   "format": "I8",
-  "size": { "w": 64, "h": 96 },
+  "size": { "w": 64, "h": 80 },
   "scale": "1",
   "frameTags": [
    { "name": "idle", "from": 0, "to": 0, "direction": "forward" }

@@ -2585,6 +2585,11 @@
   resolved "https://registry.yarnpkg.com/@pixi/filter-noise/-/filter-noise-7.2.4.tgz#0586a00381ec0e63f6c00d49cd58b781eaf07f37"
   integrity sha512-QAU9Ybj2ZQrWM9ZEjTTC0iLnQcuyNoZNRinxSbg1G0yacpmsSb9wvV5ltIZ66+hfY+90+u2Nudt/v9g6pvOdGg==
 
+"@pixi/filter-outline@^5.2.0":
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/@pixi/filter-outline/-/filter-outline-5.2.0.tgz#8572ed2c847c31c5a142db04e86f081baed0365a"
+  integrity sha512-xKfAouhZNKl6A0RvxT5i+2/ean7r16dE/QswwIkbWvr2hhHlp4p9U6XsqdgUERCDxK+IZibMAumbWs4DGxOUeQ==
+
 "@pixi/graphics@7.2.4":
   version "7.2.4"
   resolved "https://registry.yarnpkg.com/@pixi/graphics/-/graphics-7.2.4.tgz#8500b604c36184736926393cb0ca9b9de9afef86"

@@ -7,8 +7,9 @@
     "typescript": "~5.0.0"
   },
   "dependencies": {
-    "@pixi/layers": "^2.0.1",
     "@mmo/shared": "*",
+    "@pixi/filter-outline": "^5.2.0",
+    "@pixi/layers": "^2.0.1",
     "lodash-es": "^4.17.21",
     "mitt": "^3.0.0",
     "pixi.js": "^7.2.4",

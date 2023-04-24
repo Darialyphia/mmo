@@ -141,11 +141,9 @@ export const createSeekingSystem = (ctx: GameContext) => {
       bounds
     );
 
-    // FIXME someimes the start or gal get incorrecty flagged as non walkable
-    rows[start.y][start.x] = 0;
-    rows[goal.y][goal.x] = 0;
-
     try {
+      rows[start.y][start.x] = 0;
+      rows[goal.y][goal.x] = 0;
       const path = new AStarFinder({
         grid: {
           matrix: rows

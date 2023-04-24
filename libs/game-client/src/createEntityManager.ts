@@ -14,6 +14,7 @@ import { GameState } from '.';
 import { coordsToPixels, interpolateEntity } from './utils';
 import { CELL_SIZE } from './constants';
 import { config } from './config';
+import { OutlineFilter } from '@pixi/filter-outline';
 
 export const spriteMap = new Map<string, PIXI.Container>();
 
@@ -25,18 +26,9 @@ const DEBUG_COLOR_PER_BRAND = {
 
 const createEntity = (entity: Entity) => {
   const container = new PIXI.Container();
+  container.cullable = true;
 
   const sprite = createAnimatedSprite(entity.spriteId, 'idle');
-  const { texture } = sprite;
-
-  const size = {
-    x: entity.size.w * CELL_SIZE,
-    y: entity.size.h * CELL_SIZE
-  };
-  const diff = {
-    x: CELL_SIZE / 2 + (texture.width - size.x * 2),
-    y: CELL_SIZE / 2 + (texture.height - size.y * 2)
-  };
 
   if (config.debug) {
     const box = new PIXI.Graphics();
@@ -44,14 +36,19 @@ const createEntity = (entity: Entity) => {
     const color = DEBUG_COLOR_PER_BRAND[entity.brand];
     box.lineStyle({ width: 1, color });
     box.beginFill(color, 0.5);
-    box.drawRect(0, 0, entity.size.w * CELL_SIZE, entity.size.h * CELL_SIZE);
-    box.position.set(-diff.x, -diff.y);
+    box.drawRect(
+      -CELL_SIZE / 2,
+      -CELL_SIZE / 2,
+      entity.size.w * CELL_SIZE,
+      entity.size.h * CELL_SIZE
+    );
+    box.endFill();
     container.addChild(box);
   } else {
-    sprite.position.set(-diff.x, -diff.y);
+    sprite.position.set(-CELL_SIZE, -CELL_SIZE);
+    sprite.filters = [new OutlineFilter(1, 0x0000)];
     container.addChild(sprite);
   }
-  container.cullable = true;
 
   return container;
 };
@@ -143,7 +140,7 @@ export const createEntityManager = ({
 
       entities.forEach(entity => {
         const sprite = getOrCreateSprite(entity.data);
-        // sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
+        sprite.scale.x = entity.data.orientation === 'left' ? -1 : 1;
         sprite.zIndex = entity.data.position.y;
         if (camera.container.children.indexOf(sprite) < 0) {
           camera.container.addChild(sprite);

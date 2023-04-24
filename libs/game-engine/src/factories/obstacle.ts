@@ -11,9 +11,9 @@ export const isObstacle = (x: GameEntity): x is Obstacle =>
 
 const OBSTACLES = [
   { spriteId: 'placeholder2x2', size: { w: 1, h: 1 } },
-  // { spriteId: 'placeholder2x3', size: { w: 1, h: 1.5 } },
-  // { spriteId: 'placeholder3x2', size: { w: 1.5, h: 1 } },
-  // { spriteId: 'placeholder3x3', size: { w: 1.5, h: 1.5 } },
+  { spriteId: 'placeholder2x3', size: { w: 1, h: 1.5 } },
+  { spriteId: 'placeholder3x2', size: { w: 1.5, h: 1 } },
+  { spriteId: 'placeholder3x3', size: { w: 1.5, h: 1.5 } },
   { spriteId: 'placeholder4x4', size: { w: 2, h: 2 } }
 ] as const;
 
