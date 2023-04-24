@@ -70,7 +70,8 @@ const internalCreateIndexedArray = <
     Object.values(groups).forEach(group => {
       const itemKey = group.key(item);
       if (!group.items.has(itemKey)) {
-        group.items.set(itemKey, []);
+        group.items.set(itemKey, [item]);
+        return;
       }
       const g = group.items.get(itemKey)!;
       if (!g.includes(item)) {
@@ -199,7 +200,7 @@ const internalCreateIndexedArray = <
         }
       });
 
-      return () => [...filters[id].items.values()] as any[];
+      return () => Array.from(filters[id].items) as any[];
     }
   };
 
