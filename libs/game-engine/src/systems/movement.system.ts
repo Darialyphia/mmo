@@ -15,10 +15,6 @@ import {
   hasPosition,
   hasMovement
 } from '../types';
-import { isObstacle } from '../factories/obstacle';
-import { System } from 'detect-collisions';
-import { isCellWalkable } from '../utils/map';
-import { isMonster } from '../factories/monster';
 import { isPlayer } from '../factories/player';
 
 type Movable = GameEntity & WithPosition & WithMovement;

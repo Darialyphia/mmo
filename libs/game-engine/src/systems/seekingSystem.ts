@@ -6,8 +6,6 @@ import {
   addVector,
   createMatrix,
   dist,
-  isDefined,
-  rectRectCollision,
   setMagnitude,
   subVector
 } from '@mmo/shared';
@@ -28,7 +26,6 @@ import {
 import { AStarFinder } from 'astar-typescript';
 import { isObstacle } from '../factories/obstacle';
 import { bBoxToRect, getEntitiesInFieldOfView } from '../utils/entity';
-import { isCellWalkable } from '../utils/map';
 
 type Seeker = GameEntity &
   WithPosition &
@@ -174,6 +171,7 @@ export const createSeekingSystem = (ctx: GameContext) => {
         1
       );
     } catch {
+      console.log('pathing error');
       return seeker.velocity;
     }
   };
