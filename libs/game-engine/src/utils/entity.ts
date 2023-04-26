@@ -3,7 +3,7 @@ import { BBox, Body, BodyType, Box, System } from 'detect-collisions';
 import { GameEntity, WithFieldOfView, WithPosition } from '../types';
 import { GameContext } from '../factories/context';
 
-const isBox = (body: Body): body is Box =>
+export const isBox = (body: Body): body is Box =>
   body.type === BodyType.Box && 'width' in body && 'height' in body;
 
 export const bBoxToRect = (box: Box): Rectangle => {

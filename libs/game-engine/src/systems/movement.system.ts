@@ -45,6 +45,7 @@ export const createMovementSystem = (ctx: GameContext) => {
       if (a.isStatic && b.isStatic) {
         return;
       }
+      if (!a.isTrigger && !b.isTrigger) return;
       if (!a.isStatic && b.isStatic) {
         return a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
       }
@@ -54,14 +55,10 @@ export const createMovementSystem = (ctx: GameContext) => {
       }
 
       const aEntity = entities.getByIndex('box', a)!;
-      const bEntity = entities.getByIndex('box', b)!;
 
       if (!isPlayer(aEntity)) {
         return a.setPosition(a.pos.x - overlapV.x, a.pos.y - overlapV.y);
       }
-      // if (!isPlayer(bEntity)) {
-      //   return b.setPosition(a.pos.x + overlapV.x, a.pos.y + overlapV.y);
-      // }
     });
     // world.separate();
   };

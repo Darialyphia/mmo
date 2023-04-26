@@ -6,6 +6,7 @@ import {
   addVector,
   createMatrix,
   dist,
+  rectRectCollision,
   setMagnitude,
   subVector
 } from '@mmo/shared';
@@ -25,7 +26,7 @@ import {
 } from '../types';
 import { AStarFinder } from 'astar-typescript';
 import { isObstacle } from '../factories/obstacle';
-import { bBoxToRect, getEntitiesInFieldOfView } from '../utils/entity';
+import { bBoxToRect, getEntitiesInFieldOfView, isBox } from '../utils/entity';
 
 type Seeker = GameEntity &
   WithPosition &
@@ -65,17 +66,29 @@ export const createSeekingSystem = (ctx: GameContext) => {
   };
 
   const getAstarRows = (seeker: Seeker) => {
-    const cells = map.getFieldOfView(bBoxToRect(seeker.box), seeker.fov);
-    const xPositions = cells.map(c => c.position.x);
-    const yPositions = cells.map(c => c.position.y);
+    const seekerRect = bBoxToRect(seeker.box);
+
+    const obstacles = world
+      .search({
+        minX: seekerRect.x - seeker.fov,
+        minY: seekerRect.y - seeker.fov,
+        maxX: seekerRect.x + seeker.fov,
+        maxY: seekerRect.y + seeker.fov
+      })
+      .filter(body => {
+        const entity = entities.getByIndex('box', body);
+        if (!entity) return true;
+        return isObstacle(entity);
+      });
+
     const bounds = {
       min: {
-        x: Math.min(...xPositions),
-        y: Math.min(...yPositions)
+        x: Math.floor(seekerRect.x - seeker.fov),
+        y: Math.floor(seekerRect.y - seeker.fov)
       },
       max: {
-        x: Math.max(...xPositions),
-        y: Math.max(...yPositions)
+        x: Math.ceil(seekerRect.x + seeker.fov),
+        y: Math.ceil(seekerRect.y + seeker.fov)
       }
     };
 
@@ -87,26 +100,31 @@ export const createSeekingSystem = (ctx: GameContext) => {
       () => 0
     );
 
-    cells.forEach(cell => {
-      const y = cell.position.y - bounds.min.y;
-      const x = cell.position.x - bounds.min.x;
-
-      const hasObstacle = world
-        .search({
-          minX: cell.position.x - 1,
-          minY: cell.position.y - 1,
-          maxX: cell.position.x,
-          maxY: cell.position.y
-        })
-        .some(body => {
-          const entity = entities.getByIndex('box', body);
-          if (!entity) return true;
-          return isObstacle(entity);
-        });
-
-      rows[y][x] = hasObstacle ? 1 : 0;
+    obstacles.forEach(body => {
+      if (!isBox(body)) return;
+      const rect = bBoxToRect(body);
+      for (let x = Math.floor(rect.x); x <= Math.ceil(rect.x + rect.w); x++) {
+        for (let y = Math.floor(rect.y); y <= Math.ceil(rect.y + rect.h); y++) {
+          if (
+            x < bounds.min.x ||
+            x > bounds.max.x ||
+            y < bounds.min.y ||
+            y > bounds.max.y
+          ) {
+            continue;
+          }
+          const isColliding = rectRectCollision(rect, {
+            x: x,
+            y: y,
+            w: seekerRect.w,
+            h: seekerRect.h
+          });
+          if (isColliding) {
+            rows[y - bounds.min.y][x - bounds.min.x] = 1;
+          }
+        }
+      }
     });
-
     return { bounds, rows };
   };
 

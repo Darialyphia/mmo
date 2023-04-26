@@ -29,7 +29,7 @@ export const createMonster = ({ map, world }: GameContext) => {
     id: nanoid(6),
     spriteId: 'rig',
     box: world.createBox(findValidSpawnPosition(map), 1, 1, {
-      isTrigger: false
+      isTrigger: true
     }),
     orientation: 'right',
     velocity: { x: 0, y: 0 },
